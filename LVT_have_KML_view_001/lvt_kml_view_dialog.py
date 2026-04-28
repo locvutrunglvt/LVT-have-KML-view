@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from qgis.PyQt import uic, QtCore, QtGui
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, 
@@ -38,7 +39,6 @@ class LvtKmlViewDialog(QDialog):
         self.btn_load_cfg.clicked.connect(self._load_config)
         self.btn_reset.clicked.connect(self._reset_config)
         
-        # Trigger read input with a small delay for safety
         QtCore.QTimer.singleShot(1000, self._on_layer_changed)
 
     def _setup_ui(self):
@@ -54,13 +54,13 @@ class LvtKmlViewDialog(QDialog):
         self.tabs = QTabWidget(); left_layout.addWidget(self.tabs)
         self.tab_shp2kml = QWidget(); self._setup_tab_shp2kml(); self.tabs.addTab(self.tab_shp2kml, "SHP → KML")
         self.tab_kml2shp = QWidget(); self._setup_tab_kml2shp(); self.tabs.addTab(self.tab_kml2shp, "KML → SHP")
-        self.tab_guide = QWidget(); self._setup_tab_guide(); self.tabs.addTab(self.tab_guide, tr('tab_help', self.lang))
-        self.tab_author = QWidget(); self._setup_tab_author(); self.tabs.addTab(self.tab_author, "Tác giả")
+        self.tab_guide = QWidget(); self._setup_tab_guide(); self.tabs.addTab(self.tab_guide, "")
+        self.tab_author = QWidget(); self._setup_tab_author(); self.tabs.addTab(self.tab_author, "")
 
         btn_layout = QHBoxLayout()
-        self.btn_save_cfg = QPushButton(tr('btn_save_cfg', self.lang))
-        self.btn_load_cfg = QPushButton(tr('btn_load_cfg', self.lang))
-        self.btn_close = QPushButton(tr('btn_cancel', self.lang))
+        self.btn_save_cfg = QPushButton()
+        self.btn_load_cfg = QPushButton()
+        self.btn_close = QPushButton()
         btn_layout.addWidget(self.btn_save_cfg); btn_layout.addWidget(self.btn_load_cfg); btn_layout.addStretch(); btn_layout.addWidget(self.btn_close)
         left_layout.addLayout(btn_layout)
 
@@ -71,19 +71,19 @@ class LvtKmlViewDialog(QDialog):
         self.poly_preview.paintEvent = self._paint_poly_preview; right_layout.addWidget(self.poly_preview)
         right_layout.addWidget(QLabel("<b>Popup Preview:</b>"))
         self.html_preview = QTextEdit(); self.html_preview.setReadOnly(True); right_layout.addWidget(self.html_preview)
-        self.btn_export_big = QPushButton("🚀 XUẤT KML / KMZ")
+        self.btn_export_big = QPushButton()
         self.btn_export_big.setMinimumHeight(50); self.btn_export_big.setStyleSheet("background-color: #1B5E20; color: white; font-weight: bold; border-radius: 5px")
         self.btn_export_big.clicked.connect(self._export); right_layout.addWidget(self.btn_export_big)
 
     def _setup_tab_shp2kml(self):
         layout = QVBoxLayout(self.tab_shp2kml)
-        self.gp_io = QGroupBox("1. Input / Output"); io_ly = QVBoxLayout()
-        r2 = QHBoxLayout(); r2.addWidget(QLabel("Select Layer:")); self.cbo_layers = QComboBox(); r2.addWidget(self.cbo_layers, 1)
-        self.btn_reset = QPushButton("Reset Cấu Hình"); r2.addWidget(self.btn_reset)
+        self.gp_io = QGroupBox(); io_ly = QVBoxLayout()
+        r2 = QHBoxLayout(); self.lbl_sel_layer = QLabel(); r2.addWidget(self.lbl_sel_layer); self.cbo_layers = QComboBox(); r2.addWidget(self.cbo_layers, 1)
+        self.btn_reset = QPushButton(); r2.addWidget(self.btn_reset)
         io_ly.addLayout(r2)
         self.gp_io.setLayout(io_ly); layout.addWidget(self.gp_io)
         
-        self.gp_name = QGroupBox("2. Name Settings"); n_ly = QHBoxLayout()
+        self.gp_name = QGroupBox(); n_ly = QHBoxLayout()
         self.cbo_name1 = QComboBox(); self.txt_sep = QLineEdit(" - "); self.cbo_name2 = QComboBox()
         self.spn_name_size = QSpinBox(); self.spn_name_size.setRange(8, 72); self.spn_name_size.setValue(12)
         self.btn_name_color = QPushButton("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
@@ -91,41 +91,91 @@ class LvtKmlViewDialog(QDialog):
         n_ly.addWidget(QLabel("F1:")); n_ly.addWidget(self.cbo_name1, 1)
         n_ly.addWidget(QLabel("Sep:")); n_ly.addWidget(self.txt_sep)
         n_ly.addWidget(QLabel("F2:")); n_ly.addWidget(self.cbo_name2, 1)
-        n_ly.addWidget(QLabel("Size:")); n_ly.addWidget(self.spn_name_size)
-        n_ly.addWidget(QLabel("Color:")); n_ly.addWidget(self.btn_name_color)
+        self.lbl_name_size = QLabel(); n_ly.addWidget(self.lbl_name_size); n_ly.addWidget(self.spn_name_size)
+        self.lbl_name_color = QLabel(); n_ly.addWidget(self.lbl_name_color); n_ly.addWidget(self.btn_name_color)
         self.gp_name.setLayout(n_ly); layout.addWidget(self.gp_name)
         
-        self.gp_desc = QGroupBox("3. Popup Info"); d_ly = QVBoxLayout()
-        self.tbl_fields = QTableWidget(0, 4); self.tbl_fields.setHorizontalHeaderLabels(["√", "Field", "Alias", "Unit"])
-        self.tbl_fields.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); d_ly.addWidget(self.tbl_fields)
+        self.gp_desc = QGroupBox(); d_ly = QVBoxLayout()
+        self.tbl_fields = QTableWidget(0, 4); self.tbl_fields.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); d_ly.addWidget(self.tbl_fields)
         self.gp_desc.setLayout(d_ly); layout.addWidget(self.gp_desc)
         
-        self.gp_poly = QGroupBox("4. Style"); p_ly = QHBoxLayout()
+        self.gp_poly = QGroupBox(); p_ly = QHBoxLayout()
         self.btn_border = QPushButton("#FF0000"); self.spn_width = QSpinBox(); self.btn_fill = QPushButton("#00FF00"); self.sld_op = QSlider(Qt.Horizontal)
         self.sld_op.setRange(0, 100); self.sld_op.setValue(50)
         self.btn_border.setStyleSheet("background-color: #FF0000"); self.btn_fill.setStyleSheet("background-color: #00FF00")
-        p_ly.addWidget(QLabel("V:")); p_ly.addWidget(self.btn_border); p_ly.addWidget(QLabel("W:")); p_ly.addWidget(self.spn_width); p_ly.addWidget(QLabel("N:")); p_ly.addWidget(self.btn_fill); p_ly.addWidget(QLabel("Op:")); p_ly.addWidget(self.sld_op)
+        self.lbl_border = QLabel(); self.lbl_width = QLabel(); self.lbl_fill = QLabel(); self.lbl_op = QLabel()
+        p_ly.addWidget(self.lbl_border); p_ly.addWidget(self.btn_border); p_ly.addWidget(self.lbl_width); p_ly.addWidget(self.spn_width)
+        p_ly.addWidget(self.lbl_fill); p_ly.addWidget(self.btn_fill); p_ly.addWidget(self.lbl_op); p_ly.addWidget(self.sld_op)
         self.gp_poly.setLayout(p_ly); layout.addWidget(self.gp_poly)
         
-        self.gp_hl = QGroupBox("5. Conditions"); hl_ly = QVBoxLayout()
+        self.gp_hl = QGroupBox(); hl_ly = QVBoxLayout()
         r3 = QHBoxLayout(); self.txt_h_title = QLineEdit("Thông tin"); self.btn_h_bg = QPushButton("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
-        r3.addWidget(QLabel("Header:")); r3.addWidget(self.txt_h_title, 1); r3.addWidget(self.btn_h_bg)
-        hl_ly.addLayout(r3); self.chk_row_hl = QCheckBox("Enable Highlighting"); hl_ly.addWidget(self.chk_row_hl)
+        self.lbl_header = QLabel(); r3.addWidget(self.lbl_header); r3.addWidget(self.txt_h_title, 1); r3.addWidget(self.btn_h_bg)
+        hl_ly.addLayout(r3); self.chk_row_hl = QCheckBox(); hl_ly.addWidget(self.chk_row_hl)
         self.tbl_rules = QTableWidget(0, 5); self.tbl_rules.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); hl_ly.addWidget(self.tbl_rules)
         r4 = QHBoxLayout(); btn_add = QPushButton("+ Add Rule"); btn_del = QPushButton("- Del"); btn_add.clicked.connect(self._add_rule); btn_del.clicked.connect(self._del_rule); r4.addWidget(btn_add); r4.addWidget(btn_del); r4.addStretch()
         hl_ly.addLayout(r4); self.gp_hl.setLayout(hl_ly); layout.addWidget(self.gp_hl)
 
     def _setup_tab_author(self):
-        ly = QVBoxLayout(self.tab_author); self.author = QTextEdit(); self.author.setReadOnly(True); ly.addWidget(self.author)
+        ly = QVBoxLayout(self.tab_author)
+        self.author = QLabel()
+        self.author.setOpenExternalLinks(True)
+        self.author.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
+        self.author.setWordWrap(True)
+        ly.addWidget(self.author)
+        ly.addStretch()
 
     def _setup_tab_guide(self): 
         ly = QVBoxLayout(self.tab_guide); self.guide = QTextEdit(); self.guide.setReadOnly(True); ly.addWidget(self.guide)
 
+    def _setup_tab_kml2shp(self):
+        ly = QVBoxLayout(self.tab_kml2shp); self.lbl_kml_src = QLabel(); ly.addWidget(self.lbl_kml_src); self.txt_kml_in = QLineEdit(); ly.addWidget(self.txt_kml_in)
+        self.lbl_crs = QLabel(); ly.addWidget(self.lbl_crs); self.txt_crs = QLineEdit("EPSG:4326"); ly.addWidget(self.txt_crs)
+        self.btn_extract = QPushButton(); self.btn_extract.clicked.connect(self._convert_kml); ly.addWidget(self.btn_extract); ly.addStretch()
+
     def _refresh_ui_text(self):
-        self.setWindowTitle("LVT have KML view _V012")
+        self.setWindowTitle("LVT have KML view _V013")
         self.btn_lang.setText("🌐 " + ("English" if self.lang == 'vi' else "Tiếng Việt"))
-        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><h1 style='color:#1B5E20'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold'>Chuyên gia Công nghệ GIS & Lâm nghiệp</p><hr><div style='text-align:left;display:inline-block;width:80%'><b>📱 Zalo:</b> 0913 191 178<br><b>🌐 Website:</b> locvutrung.lvtcenter.it.com<br><b>🎬 YouTube:</b> youtube.com/@locvutrung<br></div><div style='margin-top:15px;background:#fff;padding:10px;border-radius:5px;border-left:5px solid #1B5E20;text-align:left'><b>Phạm vi chuyên môn:</b><br>• FSC/CoC | • EUDR | • Webapp<br>• Appsheet | • QGIS | • Lâm sinh | • DATA</div></div></div>"""
-        self.author.setHtml(author_html); self.guide.setHtml(get_help(self.lang))
+        is_vi = self.lang == 'vi'
+        
+        self.gp_io.setTitle("1. Chọn lớp dữ liệu (Input)" if is_vi else "1. Input / Output")
+        self.lbl_sel_layer.setText("Lớp bản đồ:" if is_vi else "Select Layer:")
+        self.btn_reset.setText("Reset Cấu Hình" if is_vi else "Reset Config")
+        
+        self.gp_name.setTitle("2. Thiết lập Tên (Name)" if is_vi else "2. Name Settings")
+        self.lbl_name_size.setText("Cỡ chữ:" if is_vi else "Size:")
+        self.lbl_name_color.setText("Màu:" if is_vi else "Color:")
+        
+        self.gp_desc.setTitle("3. Thiết lập Popup (Fields)" if is_vi else "3. Popup Info")
+        self.tbl_fields.setHorizontalHeaderLabels(["√", "Trường" if is_vi else "Field", "Bí danh" if is_vi else "Alias", "Đơn vị" if is_vi else "Unit"])
+        
+        self.gp_poly.setTitle("4. Giao diện Vùng (Style)" if is_vi else "4. Style")
+        self.lbl_border.setText("Viền:" if is_vi else "Border:")
+        self.lbl_width.setText("Độ dày:" if is_vi else "Width:")
+        self.lbl_fill.setText("Nền:" if is_vi else "Fill:")
+        self.lbl_op.setText("Độ mờ:" if is_vi else "Opacity:")
+        
+        self.gp_hl.setTitle("5. Định dạng có điều kiện" if is_vi else "5. Conditions")
+        self.lbl_header.setText("Tiêu đề:" if is_vi else "Header:")
+        self.chk_row_hl.setText("Bật tô màu dòng" if is_vi else "Enable Highlighting")
+        
+        self.btn_save_cfg.setText("Lưu cấu hình" if is_vi else "Save Config")
+        self.btn_load_cfg.setText("Mở cấu hình" if is_vi else "Load Config")
+        self.btn_close.setText("Đóng" if is_vi else "Close")
+        self.btn_export_big.setText("🚀 XUẤT KML / KMZ" if is_vi else "🚀 EXPORT KML / KMZ")
+        
+        self.lbl_kml_src.setText("Đường dẫn KML:" if is_vi else "KML Source:")
+        self.lbl_crs.setText("Hệ tọa độ:" if is_vi else "Target CRS:")
+        self.btn_extract.setText("🔄 CHUYỂN ĐỔI SHP" if is_vi else "🔄 EXTRACT SHP")
+        
+        self.tabs.setTabText(0, "SHP → KML")
+        self.tabs.setTabText(1, "KML → SHP")
+        self.tabs.setTabText(2, "Hướng dẫn" if is_vi else "Guide")
+        self.tabs.setTabText(3, "Tác giả" if is_vi else "Author")
+
+        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><h1 style='color:#1B5E20;margin-bottom:5px;'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold;color:#444;margin-top:0;'>Chuyên gia FSC, Kỹ thuật lâm sinh, và Chuyển đổi số</p><hr style='border: 0; height: 1px; background: #ddd; width: 80%;'><div style='text-align:left;display:inline-block;width:80%;font-size:15px;line-height:1.6;margin-top:10px;'><b>📱 Zalo:</b> 0913 191 178<br><b>🌐 Website:</b> <a href='http://locvutrung.lvtcenter.it.com' style='color:#1B5E20;text-decoration:none'>locvutrung.lvtcenter.it.com</a><br><b>🎬 YouTube:</b> <a href='https://youtube.com/@locvutrung' style='color:#1B5E20;text-decoration:none'>youtube.com/@locvutrung</a><br></div><div style='margin-top:20px;background:#fff;padding:15px;border-radius:5px;border-left:5px solid #1B5E20;text-align:left;font-size:15px;line-height:1.8;box-shadow: 0 2px 4px rgba(0,0,0,0.1);'><b>Phạm vi chuyên môn:</b><br>• Hệ thống chứng chỉ rừng FSC/CoC<br>• Quy định chống phá rừng châu Âu (EUDR)<br>• Ứng dụng Webapp / Appsheet<br>• Hệ thống thông tin địa lý QGIS / Quản lý DATA<br>• Kỹ thuật Lâm sinh</div></div></div>"""
+        self.author.setText(author_html)
+        self.guide.setHtml(get_help(self.lang))
 
     def _load_current_layers(self):
         self.cbo_layers.blockSignals(True)
@@ -197,6 +247,58 @@ class LvtKmlViewDialog(QDialog):
             'row_highlights': {'enabled': self.chk_row_hl.isChecked(), 'rules': rules}
         }
 
+    def _apply_config(self, cfg):
+        nm = cfg.get('name_fields', {})
+        idx1 = self.cbo_name1.findText(nm.get('field1', '')); 
+        if idx1 >= 0: self.cbo_name1.setCurrentIndex(idx1)
+        idx2 = self.cbo_name2.findText(nm.get('field2', '')); 
+        if idx2 >= 0: self.cbo_name2.setCurrentIndex(idx2)
+        self.txt_sep.setText(nm.get('separator', ' - '))
+        self.spn_name_size.setValue(nm.get('font_size', 12))
+        c_nm = nm.get('font_color', '#FFFFFF'); self.btn_name_color.setText(c_nm); self.btn_name_color.setStyleSheet(f"background-color: {c_nm}")
+        
+        ps = cfg.get('polygon_style', {})
+        self.spn_width.setValue(ps.get('border_width', 2))
+        self.sld_op.setValue(ps.get('fill_opacity', 50))
+        bc = ps.get('border_color', '#FF0000'); self.btn_border.setText(bc); self.btn_border.setStyleSheet(f"background-color: {bc}")
+        fc = ps.get('fill_color', '#00FF00'); self.btn_fill.setText(fc); self.btn_fill.setStyleSheet(f"background-color: {fc}")
+
+        hd = cfg.get('header', {})
+        self.txt_h_title.setText(hd.get('title', 'Thông tin'))
+        hbc = hd.get('bg_color', '#1B5E20'); self.btn_h_bg.setText(hbc); self.btn_h_bg.setStyleSheet(f"background-color: {hbc}")
+
+        rh = cfg.get('row_highlights', {})
+        self.chk_row_hl.setChecked(rh.get('enabled', False))
+        rules = rh.get('rules', [])
+        self.tbl_rules.setRowCount(0)
+        for rule in rules:
+            self._add_rule()
+            r = self.tbl_rules.rowCount() - 1
+            cb = self.tbl_rules.cellWidget(r, 0); 
+            if cb:
+                idx = cb.findText(rule.get('field', ''))
+                if idx >= 0: cb.setCurrentIndex(idx)
+            cb_op = self.tbl_rules.cellWidget(r, 1); 
+            if cb_op:
+                idx = cb_op.findText(rule.get('operator', '='))
+                if idx >= 0: cb_op.setCurrentIndex(idx)
+            self.tbl_rules.item(r, 2).setText(rule.get('value', ''))
+            tc = rule.get('text_color', '#000000'); btn_tc = self.tbl_rules.cellWidget(r, 3); btn_tc.setText(tc); btn_tc.setStyleSheet(f"background-color: {tc}")
+            bgc = rule.get('bg_color', '#FFFFFF'); btn_bgc = self.tbl_rules.cellWidget(r, 4); btn_bgc.setText(bgc); btn_bgc.setStyleSheet(f"background-color: {bgc}")
+
+        df = cfg.get('description_fields', [])
+        df_dict = {f['field']: f for f in df}
+        for i in range(self.tbl_fields.rowCount()):
+            f_name = self.tbl_fields.item(i, 1).text()
+            chk = self.tbl_fields.cellWidget(i, 0)
+            if f_name in df_dict:
+                chk.setChecked(True)
+                self.tbl_fields.item(i, 2).setText(df_dict[f_name].get('alias', f_name))
+                self.tbl_fields.item(i, 3).setText(df_dict[f_name].get('suffix', ''))
+            else:
+                chk.setChecked(False)
+        self._trigger_refresh()
+
     def _export(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
         if layers:
@@ -216,8 +318,20 @@ class LvtKmlViewDialog(QDialog):
         self.tbl_rules.setCellWidget(r, 0, cb); cb_op = QComboBox(); cb_op.addItems(["=", ">", "<"]); self.tbl_rules.setCellWidget(r, 1, cb_op)
         self.tbl_rules.setItem(r, 2, QTableWidgetItem("")); self.tbl_rules.setCellWidget(r, 3, QPushButton("#C62828")); self.tbl_rules.setCellWidget(r, 4, QPushButton("#FFF5F5"))
     def _del_rule(self): self.tbl_rules.removeRow(self.tbl_rules.currentRow())
-    def _save_config(self): pass
-    def _load_config(self): pass
+    
+    def _save_config(self):
+        out_path, _ = QFileDialog.getSaveFileName(self, "Save Config", "", "JSON (*.json)")
+        if out_path:
+            with open(out_path, 'w', encoding='utf-8') as f: json.dump(self._get_current_config(), f, ensure_ascii=False, indent=2)
+            QMessageBox.information(self, "Success", "Lưu cấu hình thành công!" if self.lang == 'vi' else "Configuration saved!")
+
+    def _load_config(self):
+        in_path, _ = QFileDialog.getOpenFileName(self, "Load Config", "", "JSON (*.json)")
+        if in_path:
+            with open(in_path, 'r', encoding='utf-8') as f: cfg = json.load(f)
+            self._apply_config(cfg)
+            QMessageBox.information(self, "Success", "Mở cấu hình thành công!" if self.lang == 'vi' else "Configuration loaded!")
+
     def _reset_config(self):
         self.txt_sep.setText(" - "); self.spn_name_size.setValue(12)
         self.btn_name_color.setText("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
@@ -226,7 +340,15 @@ class LvtKmlViewDialog(QDialog):
         self.spn_width.setValue(2); self.sld_op.setValue(50)
         self.txt_h_title.setText("Thông tin"); self.btn_h_bg.setText("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
         self.chk_row_hl.setChecked(False); self.tbl_rules.setRowCount(0); self._on_layer_changed()
-    def _setup_tab_kml2shp(self):
-        ly = QVBoxLayout(self.tab_kml2shp); ly.addWidget(QLabel("KML Source:")); self.txt_kml_in = QLineEdit(); ly.addWidget(self.txt_kml_in)
-        ly.addWidget(QLabel("Target CRS:")); self.txt_crs = QLineEdit("EPSG:4326"); ly.addWidget(self.txt_crs); btn = QPushButton("🔄 EXTRACT NOW"); btn.clicked.connect(self._convert_kml); ly.addWidget(btn); ly.addStretch()
-    def _convert_kml(self): pass
+        
+    def _convert_kml(self):
+        # Implementation for KML to SHP
+        kml_path = self.txt_kml_in.text()
+        if not kml_path or not os.path.exists(kml_path):
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn KML!" if self.lang == 'vi' else "Please select valid KML!")
+            return
+        out_shp, _ = QFileDialog.getSaveFileName(self, "Lưu SHP", "", "Shapefile (*.shp)")
+        if out_shp:
+            converter = KmlToShpConverter()
+            success, msg = converter.convert(kml_path, out_shp, self.txt_crs.text())
+            QMessageBox.information(self, "Success", msg)
