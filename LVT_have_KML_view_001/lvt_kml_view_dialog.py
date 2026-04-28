@@ -33,8 +33,13 @@ class LvtKmlViewDialog(QDialog):
         self._refresh_ui_text()
         self._connect_live_preview()
         
-        # Safe initial trigger
-        QtCore.QTimer.singleShot(800, self._on_layer_changed)
+        # Connect main buttons
+        self.btn_close.clicked.connect(self.close)
+        self.btn_save_cfg.clicked.connect(self._save_config)
+        self.btn_load_cfg.clicked.connect(self._load_config)
+        
+        # Trigger read input with a small delay for safety
+        QtCore.QTimer.singleShot(1000, self._on_layer_changed)
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
@@ -53,9 +58,9 @@ class LvtKmlViewDialog(QDialog):
         self.tab_author = QWidget(); self._setup_tab_author(); self.tabs.addTab(self.tab_author, "Tác giả")
 
         btn_layout = QHBoxLayout()
-        self.btn_save_cfg = QPushButton(tr('btn_save_cfg', self.lang)); self.btn_save_cfg.setIcon(QIcon(':/images/themes/default/mActionFileSave.svg'))
-        self.btn_load_cfg = QPushButton(tr('btn_load_cfg', self.lang)); self.btn_load_cfg.setIcon(QIcon(':/images/themes/default/mActionFolder.svg'))
-        self.btn_close = QPushButton(tr('btn_cancel', self.lang)); self.btn_close.setIcon(QIcon(':/images/themes/default/mActionDelete.svg'))
+        self.btn_save_cfg = QPushButton(tr('btn_save_cfg', self.lang))
+        self.btn_load_cfg = QPushButton(tr('btn_load_cfg', self.lang))
+        self.btn_close = QPushButton(tr('btn_cancel', self.lang))
         btn_layout.addWidget(self.btn_save_cfg); btn_layout.addWidget(self.btn_load_cfg); btn_layout.addStretch(); btn_layout.addWidget(self.btn_close)
         left_layout.addLayout(btn_layout)
 
@@ -99,12 +104,20 @@ class LvtKmlViewDialog(QDialog):
     def _setup_tab_author(self):
         ly = QVBoxLayout(self.tab_author); self.author = QTextEdit(); self.author.setReadOnly(True); ly.addWidget(self.author)
 
+    def _setup_tab_guide(self): 
+        ly = QVBoxLayout(self.tab_guide); self.guide = QTextEdit(); self.guide.setReadOnly(True); ly.addWidget(self.guide)
+
     def _refresh_ui_text(self):
-        self.setWindowTitle("LVT have KML view _V009")
+        self.setWindowTitle("LVT have KML view _V011")
         self.btn_lang.setText("🌐 " + ("English" if self.lang == 'vi' else "Tiếng Việt"))
         img_path = os.path.join(self.plugin_dir, 'author.png'); img_url = f"file:///{img_path.replace('\\', '/')}"
-        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><img src='{img_url}' width='350'><h1 style='color:#1B5E20'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold'>Chuyên gia Công nghệ GIS & Lâm nghiệp</p><hr><p><b>📱 Zalo:</b> 0913 191 178</p><p><b>🌐 Website:</b> locvutrung.lvtcenter.it.com</p><p><b>🎬 YouTube:</b> youtube.com/@locvutrung</p></div></div>"""
-        self.author.setHtml(author_html)
+        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><img src='{img_url}' width='350'><h1 style='color:#1B5E20'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold'>Chuyên gia Công nghệ GIS & Lâm nghiệp</p><hr><div style='text-align:left;display:inline-block;width:80%'><b>📱 Zalo:</b> 0913 191 178<br><b>🌐 Website:</b> locvutrung.lvtcenter.it.com<br><b>🎬 YouTube:</b> youtube.com/@locvutrung<br></div><div style='margin-top:15px;background:#fff;padding:10px;border-radius:5px;border-left:5px solid #1B5E20;text-align:left'><b>Phạm vi chuyên môn:</b><br>• FSC/CoC | • EUDR | • Webapp<br>• Appsheet | • QGIS | • Lâm sinh | • DATA</div></div></div>"""
+        self.author.setHtml(author_html); self.guide.setHtml(get_help(self.lang))
+
+    def _load_current_layers(self):
+        self.cbo_layers.clear()
+        for layer in QgsProject.instance().mapLayers().values():
+            if isinstance(layer, QgsVectorLayer): self.cbo_layers.addItem(layer.name())
 
     def _connect_live_preview(self):
         for w in [self.cbo_layers, self.cbo_name1, self.cbo_name2, self.txt_sep, self.sld_op, self.spn_width, self.txt_h_title, self.chk_row_hl]:
@@ -115,8 +128,7 @@ class LvtKmlViewDialog(QDialog):
         self.btn_border.clicked.connect(lambda: (self._pick_color(self.btn_border), self._trigger_refresh()))
         self.btn_fill.clicked.connect(lambda: (self._pick_color(self.btn_fill), self._trigger_refresh()))
         self.btn_h_bg.clicked.connect(lambda: (self._pick_color(self.btn_h_bg), self._trigger_refresh()))
-        self.tbl_fields.itemChanged.connect(self._trigger_refresh)
-        self.tbl_rules.itemChanged.connect(self._trigger_refresh)
+        self.tbl_fields.itemChanged.connect(self._trigger_refresh); self.tbl_rules.itemChanged.connect(self._trigger_refresh)
 
     def _trigger_refresh(self):
         self.poly_preview.update()
@@ -134,8 +146,7 @@ class LvtKmlViewDialog(QDialog):
         if layers: self.txt_shp.setText(layers[0].source()); self._update_fields(layers[0]); self._trigger_refresh()
 
     def _update_fields(self, layer):
-        self.tbl_fields.blockSignals(True)
-        fnames = [f.name() for f in layer.fields()]
+        self.tbl_fields.blockSignals(True); fnames = [f.name() for f in layer.fields()]
         self.cbo_name1.clear(); self.cbo_name1.addItems(fnames); self.cbo_name2.clear(); self.cbo_name2.addItems(fnames)
         self.tbl_fields.setRowCount(0)
         for i, name in enumerate(fnames):
@@ -154,40 +165,26 @@ class LvtKmlViewDialog(QDialog):
     def _get_current_config(self):
         rules = []
         for i in range(self.tbl_rules.rowCount()):
-            rules.append({
-                'field': self.tbl_rules.cellWidget(i,0).currentText() if self.tbl_rules.cellWidget(i,0) else "",
-                'operator': self.tbl_rules.cellWidget(i,1).currentText() if self.tbl_rules.cellWidget(i,1) else "=",
-                'value': self.tbl_rules.item(i,2).text() if self.tbl_rules.item(i,2) else "",
-                'text_color': self.tbl_rules.cellWidget(i,3).text() if self.tbl_rules.cellWidget(i,3) else "#000",
-                'bg_color': self.tbl_rules.cellWidget(i,4).text() if self.tbl_rules.cellWidget(i,4) else "#fff",
-                'bold': True, 'italic': False
-            })
+            rules.append({'field': self.tbl_rules.cellWidget(i,0).currentText() if self.tbl_rules.cellWidget(i,0) else "", 'operator': self.tbl_rules.cellWidget(i,1).currentText() if self.tbl_rules.cellWidget(i,1) else "=", 'value': self.tbl_rules.item(i,2).text() if self.tbl_rules.item(i,2) else "", 'text_color': self.tbl_rules.cellWidget(i,3).text() if self.tbl_rules.cellWidget(i,3) else "#000", 'bg_color': self.tbl_rules.cellWidget(i,4).text() if self.tbl_rules.cellWidget(i,4) else "#fff", 'bold': True, 'italic': False})
         df = []
         for i in range(self.tbl_fields.rowCount()):
             chk = self.tbl_fields.cellWidget(i,0)
             if chk and chk.isChecked():
                 f_item = self.tbl_fields.item(i,1); a_item = self.tbl_fields.item(i,2); s_item = self.tbl_fields.item(i,3)
-                if f_item and a_item: # SAFE CHECK
-                    df.append({'field': f_item.text(), 'alias': a_item.text(), 'suffix': s_item.text() if s_item else "", 'order': i})
-        return {
-            'name_fields': {'field1': self.cbo_name1.currentText(), 'field2': self.cbo_name2.currentText(), 'separator': self.txt_sep.text(), 'font_size': 12},
-            'description_fields': df, 'polygon_style': {'border_color': self.btn_border.text(), 'border_width': self.spn_width.value(), 'fill_color': self.btn_fill.text(), 'fill_opacity': self.sld_op.value()},
-            'header': {'title': self.txt_h_title.text(), 'bg_color': self.btn_h_bg.text(), 'text_color': "#FFFFFF", 'bold': True, 'font_size': 14},
-            'row_highlights': {'enabled': self.chk_row_hl.isChecked(), 'rules': rules}
-        }
+                if f_item and a_item: df.append({'field': f_item.text(), 'alias': a_item.text(), 'suffix': s_item.text() if s_item else "", 'order': i})
+        return {'name_fields': {'field1': self.cbo_name1.currentText(), 'field2': self.cbo_name2.currentText(), 'separator': self.txt_sep.text(), 'font_size': 12}, 'description_fields': df, 'polygon_style': {'border_color': self.btn_border.text(), 'border_width': self.spn_width.value(), 'fill_color': self.btn_fill.text(), 'fill_opacity': self.sld_op.value()}, 'header': {'title': self.txt_h_title.text(), 'bg_color': self.btn_h_bg.text(), 'text_color': "#FFFFFF", 'bold': True, 'font_size': 14}, 'row_highlights': {'enabled': self.chk_row_hl.isChecked(), 'rules': rules}}
 
     def _export(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
         if layers:
             out_path, _ = QFileDialog.getSaveFileName(self, "Save KML/KMZ", "", "KML (*.kml);;KMZ (*.kmz)")
             if out_path:
-                builder = KmlBuilder(self._get_current_config())
-                builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
+                builder = KmlBuilder(self._get_current_config()); builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
                 QMessageBox.information(self, "Success", tr('msg_success', self.lang))
 
     def _toggle_language(self): self.lang = 'en' if self.lang == 'vi' else 'vi'; self._refresh_ui_text(); self._trigger_refresh()
     def _pick_color(self, btn):
-        c = QColorDialog.getColor(QColor(btn.text()))
+        c = QColorDialog.getColor(QColor(btn.text())); 
         if c.isValid(): btn.setText(c.name()); btn.setStyleSheet(f"background-color: {c.name()}")
     def _add_rule(self):
         r = self.tbl_rules.rowCount(); self.tbl_rules.insertRow(r)
@@ -195,10 +192,10 @@ class LvtKmlViewDialog(QDialog):
         if layers: cb.addItems([f.name() for f in layers[0].fields()])
         self.tbl_rules.setCellWidget(r, 0, cb); cb_op = QComboBox(); cb_op.addItems(["=", ">", "<"]); self.tbl_rules.setCellWidget(r, 1, cb_op)
         self.tbl_rules.setItem(r, 2, QTableWidgetItem("")); self.tbl_rules.setCellWidget(r, 3, QPushButton("#C62828")); self.tbl_rules.setCellWidget(r, 4, QPushButton("#FFF5F5"))
-        self._trigger_refresh()
-    def _del_rule(self): self.tbl_rules.removeRow(self.tbl_rules.currentRow()); self._trigger_refresh()
+    def _del_rule(self): self.tbl_rules.removeRow(self.tbl_rules.currentRow())
+    def _save_config(self): pass
+    def _load_config(self): pass
     def _setup_tab_kml2shp(self):
         ly = QVBoxLayout(self.tab_kml2shp); ly.addWidget(QLabel("KML Source:")); self.txt_kml_in = QLineEdit(); ly.addWidget(self.txt_kml_in)
         ly.addWidget(QLabel("Target CRS:")); self.txt_crs = QLineEdit("EPSG:4326"); ly.addWidget(self.txt_crs); btn = QPushButton("🔄 EXTRACT NOW"); btn.clicked.connect(self._convert_kml); ly.addWidget(btn); ly.addStretch()
     def _convert_kml(self): pass
-    def _setup_tab_guide(self): ly = QVBoxLayout(self.tab_guide); self.guide = QTextEdit(); self.guide.setReadOnly(True); ly.addWidget(self.guide)
