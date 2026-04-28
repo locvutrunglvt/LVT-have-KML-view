@@ -56,6 +56,7 @@ def tr(key, lang='vi'):
 def get_help(lang='vi'):
     if lang == 'vi':
         return """
+        <div style='font-size: 14px; font-family: sans-serif; line-height: 1.5;'>
         <h2 style='color:#1B5E20'>HƯỚNG DẪN SỬ DỤNG CHI TIẾT</h2>
         <p><b>1. Dữ liệu Đầu vào (SHP → KML):</b> Chọn Layer đang mở trong QGIS hoặc bấm Browse để chọn file SHP từ máy tính. Chọn định dạng KMZ để nén file gọn hơn.</p>
         <p><b>2. Cấu hình Nhãn:</b> Chọn 2 trường dữ liệu để kết hợp thành tên hiển thị trên bản đồ Google Earth. Bạn có thể xem trước kết quả ngay tại dòng chữ màu xanh.</p>
@@ -71,9 +72,11 @@ def get_help(lang='vi'):
             - Dòng thỏa mãn điều kiện sẽ được đổi màu nền và màu chữ trong Popup.
         </p>
         <p><b>6. Bung KML → SHP:</b> Chọn file KML/KMZ, công cụ sẽ tự động bóc tách các trường dữ liệu từ cột Description để tạo lại file SHP có đầy đủ các cột thuộc tính riêng biệt.</p>
+        </div>
         """
     else:
         return """
+        <div style='font-size: 14px; font-family: sans-serif; line-height: 1.5;'>
         <h2 style='color:#1B5E20'>DETAILED USER GUIDE</h2>
         <p><b>1. Input Data (SHP → KML):</b> Select an active QGIS layer or Browse for a SHP file. Use KMZ for a more compressed output.</p>
         <p><b>2. Label Configuration:</b> Pick 2 fields to combine into the map label. See the live preview in blue text.</p>
@@ -89,4 +92,5 @@ def get_help(lang='vi'):
             - Highlighted rows will change text and background colors in the Popup.
         </p>
         <p><b>6. Extract KML → SHP:</b> Select a KML/KMZ file. The tool will parse the Description column and reconstruct a SHP with separate attribute columns.</p>
+        </div>
         """

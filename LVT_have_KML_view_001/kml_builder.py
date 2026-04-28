@@ -55,6 +55,7 @@ class KmlBuilder:
         name_color = hex_to_kml_color(name_cfg.get('font_color', '#FFFFFF'), 100)
 
         lines.append('<Style id="style_default">')
+        lines.append('<IconStyle><scale>0</scale></IconStyle>')
         lines.append(f'<LabelStyle><color>{name_color}</color><scale>{label_scale}</scale></LabelStyle>')
         lines.append(f'<LineStyle><color>{border_kml}</color><width>{bw}</width></LineStyle>')
         lines.append(f'<PolyStyle><color>{fill_kml}</color></PolyStyle>')
@@ -66,6 +67,7 @@ class KmlBuilder:
                 rb = hex_to_kml_color(rule.get('border_color', '#FF0000'), 100)
                 rf = hex_to_kml_color(rule.get('fill_color', '#FF0000'), poly.get('fill_opacity', 50))
                 lines.append(f'<Style id="style_rule_{i}">')
+                lines.append('<IconStyle><scale>0</scale></IconStyle>')
                 lines.append(f'<LabelStyle><color>{name_color}</color><scale>{label_scale}</scale></LabelStyle>')
                 lines.append(f'<LineStyle><color>{rb}</color><width>{bw}</width></LineStyle>')
                 lines.append(f'<PolyStyle><color>{rf}</color></PolyStyle>')
@@ -75,31 +77,57 @@ class KmlBuilder:
     def _build_placemark(self, feat, name_cfg, cond_cfg, transform):
         geom = feat.geometry()
         if geom is None or geom.isEmpty():
-            return None
+            return []
         if transform:
             geom.transform(transform)
         name = self._build_name(feat, name_cfg)
         fdata = {f.name(): feat[f.name()] for f in feat.fields()}
         desc = self.html_builder.build(fdata)
         sid = self._determine_style(feat, cond_cfg)
-        lines = ['<Placemark>', f'<name>{self._esc(name)}</name>',
-                 f'<styleUrl>#{sid}</styleUrl>',
-                 f'<description><![CDATA[{desc}]]></description>']
+        
+        lines = []
         gt = QgsWkbTypes.geometryType(geom.wkbType())
+        
         if gt == QgsWkbTypes.PolygonGeometry:
-            lines.extend(self._poly_kml(geom))
+            # Placemark 1: Polygon without name
+            lines.extend(['<Placemark>', '<name></name>',
+                     f'<styleUrl>#{sid}</styleUrl>',
+                     f'<description><![CDATA[{desc}]]></description>'])
+            lines.extend(self._poly_kml_geom_only(geom))
+            lines.append('</Placemark>')
+            
+            # Placemark 2: Point with Name and Region
+            centroid = geom.pointOnSurface() if hasattr(geom, 'pointOnSurface') else geom.centroid()
+            if centroid and centroid.asPoint():
+                pt = centroid.asPoint()
+                north, south = pt.y() + 0.0002, pt.y() - 0.0002
+                east, west = pt.x() + 0.0002, pt.x() - 0.0002
+                lines.extend(['<Placemark>', f'<name>{self._esc(name)}</name>', f'<styleUrl>#{sid}</styleUrl>', f'<description><![CDATA[{desc}]]></description>'])
+                lines.extend([
+                    '<Region><LatLonAltBox>',
+                    f'<north>{north}</north><south>{south}</south>',
+                    f'<east>{east}</east><west>{west}</west>',
+                    '</LatLonAltBox><Lod><minLodPixels>16</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>'
+                ])
+                lines.append(f'<Point><coordinates>{pt.x()},{pt.y()},0</coordinates></Point>')
+                lines.append('</Placemark>')
         elif gt == QgsWkbTypes.LineGeometry:
+            lines.extend(['<Placemark>', f'<name>{self._esc(name)}</name>', f'<styleUrl>#{sid}</styleUrl>', f'<description><![CDATA[{desc}]]></description>'])
             lines.extend(self._line_kml(geom))
+            lines.append('</Placemark>')
         elif gt == QgsWkbTypes.PointGeometry:
+            lines.extend(['<Placemark>', f'<name>{self._esc(name)}</name>', f'<styleUrl>#{sid}</styleUrl>', f'<description><![CDATA[{desc}]]></description>'])
             lines.extend(self._pt_kml(geom))
-        lines.append('</Placemark>')
+            lines.append('</Placemark>')
+            
         return lines
 
     def _build_name(self, feat, cfg):
         f1, f2 = cfg.get('field1', ''), cfg.get('field2', '')
         sep = cfg.get('separator', ' - ')
-        v1 = str(feat[f1]) if f1 and feat[f1] is not None else ''
-        v2 = str(feat[f2]) if f2 and feat[f2] is not None else ''
+        fnames = [f.name() for f in feat.fields()]
+        v1 = str(feat[f1]) if f1 in fnames and feat[f1] is not None else ''
+        v2 = str(feat[f2]) if f2 in fnames and feat[f2] is not None else ''
         if v1 and v2:
             return f"{v1}{sep}{v2}"
         return v1 or v2 or 'Unnamed'
@@ -117,28 +145,18 @@ class KmlBuilder:
                 return f'style_rule_{i}'
         return 'style_default'
 
-    def _poly_kml(self, geom):
+    def _poly_kml_geom_only(self, geom):
         lines = []
         if geom.isMultipart():
             lines.append('<MultiGeometry>')
             for part in geom.asMultiPolygon():
                 lines.extend(self._single_poly(part))
-            # Add centroid point so label displays on Google Earth
-            centroid = geom.poleOfInaccessibility(0.0001) if hasattr(geom, 'poleOfInaccessibility') else geom.centroid()
-            if centroid and centroid.asPoint():
-                pt = centroid.asPoint()
-                lines.append(f'<Point><coordinates>{pt.x()},{pt.y()},0</coordinates></Point>')
             lines.append('</MultiGeometry>')
         else:
             p = geom.asPolygon()
             if p:
                 lines.append('<MultiGeometry>')
                 lines.extend(self._single_poly(p))
-                # Add centroid point so label displays on Google Earth
-                centroid = geom.poleOfInaccessibility(0.0001) if hasattr(geom, 'poleOfInaccessibility') else geom.centroid()
-                if centroid and centroid.asPoint():
-                    pt = centroid.asPoint()
-                    lines.append(f'<Point><coordinates>{pt.x()},{pt.y()},0</coordinates></Point>')
                 lines.append('</MultiGeometry>')
         return lines
 

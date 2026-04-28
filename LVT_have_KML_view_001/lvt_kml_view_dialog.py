@@ -83,7 +83,8 @@ class LvtKmlViewDialog(QDialog):
         io_ly.addLayout(r2)
         self.gp_io.setLayout(io_ly); layout.addWidget(self.gp_io)
         
-        self.gp_name = QGroupBox(); n_ly = QHBoxLayout()
+        self.gp_name = QGroupBox(); name_main_ly = QVBoxLayout()
+        n_ly = QHBoxLayout()
         self.cbo_name1 = QComboBox(); self.txt_sep = QLineEdit(" - "); self.cbo_name2 = QComboBox()
         self.spn_name_size = QSpinBox(); self.spn_name_size.setRange(8, 72); self.spn_name_size.setValue(12)
         self.btn_name_color = QPushButton("#000000")
@@ -94,9 +95,26 @@ class LvtKmlViewDialog(QDialog):
         n_ly.addWidget(QLabel("F2:")); n_ly.addWidget(self.cbo_name2, 1)
         self.lbl_name_size = QLabel(); n_ly.addWidget(self.lbl_name_size); n_ly.addWidget(self.spn_name_size)
         self.lbl_name_color = QLabel(); n_ly.addWidget(self.lbl_name_color); n_ly.addWidget(self.btn_name_color)
-        self.gp_name.setLayout(n_ly); layout.addWidget(self.gp_name)
+        
+        self.lbl_name_preview = QLabel("<b>Preview:</b> <i>Unnamed</i>")
+        self.lbl_name_preview.setStyleSheet("color: #1B5E20;")
+        
+        name_main_ly.addLayout(n_ly)
+        name_main_ly.addWidget(self.lbl_name_preview)
+        
+        self.gp_name.setLayout(name_main_ly); layout.addWidget(self.gp_name)
         
         self.gp_desc = QGroupBox(); d_ly = QVBoxLayout()
+        btn_ly_desc = QHBoxLayout()
+        self.btn_check_all = QPushButton()
+        self.btn_uncheck_all = QPushButton()
+        self.btn_check_all.clicked.connect(self._check_all_fields)
+        self.btn_uncheck_all.clicked.connect(self._uncheck_all_fields)
+        btn_ly_desc.addWidget(self.btn_check_all)
+        btn_ly_desc.addWidget(self.btn_uncheck_all)
+        btn_ly_desc.addStretch()
+        d_ly.addLayout(btn_ly_desc)
+        
         self.tbl_fields = QTableWidget(0, 4); self.tbl_fields.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); d_ly.addWidget(self.tbl_fields)
         self.gp_desc.setLayout(d_ly); layout.addWidget(self.gp_desc)
         
@@ -113,7 +131,9 @@ class LvtKmlViewDialog(QDialog):
         r3 = QHBoxLayout(); self.txt_h_title = QLineEdit("Thông tin"); self.btn_h_bg = QPushButton("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
         self.lbl_header = QLabel(); r3.addWidget(self.lbl_header); r3.addWidget(self.txt_h_title, 1); r3.addWidget(self.btn_h_bg)
         hl_ly.addLayout(r3); self.chk_row_hl = QCheckBox(); hl_ly.addWidget(self.chk_row_hl)
-        self.tbl_rules = QTableWidget(0, 5); self.tbl_rules.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); hl_ly.addWidget(self.tbl_rules)
+        self.tbl_rules = QTableWidget(0, 5); self.tbl_rules.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tbl_rules.setMaximumHeight(130)
+        hl_ly.addWidget(self.tbl_rules)
         r4 = QHBoxLayout(); btn_add = QPushButton("+ Add Rule"); btn_del = QPushButton("- Del"); btn_add.clicked.connect(self._add_rule); btn_del.clicked.connect(self._del_rule); r4.addWidget(btn_add); r4.addWidget(btn_del); r4.addStretch()
         hl_ly.addLayout(r4); self.gp_hl.setLayout(hl_ly); layout.addWidget(self.gp_hl)
 
@@ -167,6 +187,8 @@ class LvtKmlViewDialog(QDialog):
         self.lbl_name_color.setText("Màu:" if is_vi else "Color:")
         
         self.gp_desc.setTitle("3. Thiết lập Popup (Fields)" if is_vi else "3. Popup Info")
+        self.btn_check_all.setText("Chọn tất cả" if is_vi else "Check All")
+        self.btn_uncheck_all.setText("Bỏ chọn tất cả" if is_vi else "Uncheck All")
         self.tbl_fields.setHorizontalHeaderLabels(["√", "Trường" if is_vi else "Field", "Bí danh" if is_vi else "Alias", "Đơn vị" if is_vi else "Unit"])
         
         self.gp_poly.setTitle("4. Giao diện Vùng (Style)" if is_vi else "4. Style")
@@ -227,6 +249,27 @@ class LvtKmlViewDialog(QDialog):
         b_c = QColor(self.btn_border.text()); f_c = QColor(self.btn_fill.text()); w = self.spn_width.value()
         f_c.setAlpha(int(self.sld_op.value() * 2.55)); painter.setPen(QPen(b_c, w)); painter.setBrush(QBrush(f_c))
         pts = [QPoint(175, 40), QPoint(300, 100), QPoint(175, 160), QPoint(50, 100)]; painter.drawPolygon(QPolygon(pts))
+        try:
+            cfg = self._get_current_config()
+            nm = cfg.get('name_fields', {})
+            c_nm = nm.get('font_color', '#000000')
+            sz = nm.get('font_size', 12)
+            name_val = "Sample"
+            layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
+            if layers:
+                feat = next(layers[0].getFeatures(), None)
+                if feat:
+                    f1, f2 = nm.get('field1', ''), nm.get('field2', '')
+                    sep = nm.get('separator', ' - ')
+                    fnames = [f.name() for f in feat.fields()]
+                    v1 = str(feat[f1]) if f1 in fnames and feat[f1] is not None else ''
+                    v2 = str(feat[f2]) if f2 in fnames and feat[f2] is not None else ''
+                    if v1 and v2: name_val = f"{v1}{sep}{v2}"
+                    else: name_val = v1 or v2 or 'Unnamed'
+            font = painter.font(); font.setPointSize(sz); painter.setFont(font)
+            painter.setPen(QColor(c_nm))
+            painter.drawText(QRect(50, 40, 250, 120), Qt.AlignCenter, name_val)
+        except Exception: pass
 
     def _on_layer_changed(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
@@ -250,6 +293,22 @@ class LvtKmlViewDialog(QDialog):
                 if cfg: 
                     html = HtmlTemplateBuilder(cfg).build({f.name(): feat[f.name()] for f in feat.fields()})
                     self.html_preview.setHtml(f"<div align='center'>{html}</div>")
+                    
+                    # Name Preview
+                    nm = cfg.get('name_fields', {})
+                    f1, f2 = nm.get('field1', ''), nm.get('field2', '')
+                    sep = nm.get('separator', ' - ')
+                    fnames = [f.name() for f in feat.fields()]
+                    v1 = str(feat[f1]) if f1 in fnames and feat[f1] is not None else ''
+                    v2 = str(feat[f2]) if f2 in fnames and feat[f2] is not None else ''
+                    if v1 and v2:
+                        name_val = f"{v1}{sep}{v2}"
+                    else:
+                        name_val = v1 or v2 or 'Unnamed'
+                        
+                    c_nm = nm.get('font_color', '#000000')
+                    sz = nm.get('font_size', 12)
+                    self.lbl_name_preview.setText(f"<b>Preview:</b> <span style='color:{c_nm}; font-size:{sz}px'>{name_val}</span>")
 
     def _get_current_config(self):
         rules = []
@@ -328,8 +387,12 @@ class LvtKmlViewDialog(QDialog):
         if layers:
             out_path, _ = QFileDialog.getSaveFileName(self, "Save KML/KMZ", "", "KML (*.kml);;KMZ (*.kmz)")
             if out_path:
-                builder = KmlBuilder(self._get_current_config()); builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
-                QMessageBox.information(self, "Success", tr('msg_success', self.lang))
+                builder = KmlBuilder(self._get_current_config())
+                success, msg = builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
+                if success:
+                    QMessageBox.information(self, "Success", tr('msg_success', self.lang))
+                else:
+                    QMessageBox.warning(self, "Lỗi" if self.lang == 'vi' else "Error", f"Xuất file thất bại:\n{msg}" if self.lang == 'vi' else f"Export failed:\n{msg}")
 
     def _toggle_language(self): self.lang = 'en' if self.lang == 'vi' else 'vi'; self._refresh_ui_text(); self._trigger_refresh()
     def _pick_color(self, btn):
@@ -365,6 +428,22 @@ class LvtKmlViewDialog(QDialog):
         self.txt_h_title.setText("Thông tin"); self.btn_h_bg.setText("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
         self.chk_row_hl.setChecked(False); self.tbl_rules.setRowCount(0); self._on_layer_changed()
         
+    def _check_all_fields(self):
+        self.tbl_fields.blockSignals(True)
+        for i in range(self.tbl_fields.rowCount()):
+            chk = self.tbl_fields.cellWidget(i, 0)
+            if chk: chk.setChecked(True)
+        self.tbl_fields.blockSignals(False)
+        self._trigger_refresh()
+
+    def _uncheck_all_fields(self):
+        self.tbl_fields.blockSignals(True)
+        for i in range(self.tbl_fields.rowCount()):
+            chk = self.tbl_fields.cellWidget(i, 0)
+            if chk: chk.setChecked(False)
+        self.tbl_fields.blockSignals(False)
+        self._trigger_refresh()
+
     def _browse_kml(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Chọn File KML/KMZ", "", "KML/KMZ Files (*.kml *.kmz)")
         if file_path:
