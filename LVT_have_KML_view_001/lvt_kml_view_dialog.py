@@ -1,6 +1,6 @@
 import os
 import re
-from qgis.PyQt import uic
+from qgis.PyQt import uic, QtCore, QtGui
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, 
     QLabel, QComboBox, QLineEdit, QPushButton, QSpinBox, 
@@ -8,8 +8,8 @@ from qgis.PyQt.QtWidgets import (
     QHeaderView, QCheckBox, QColorDialog, QGroupBox, QTextEdit,
     QSlider, QRadioButton, QButtonGroup, QScrollArea, QFrame
 )
-from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtGui import QIcon, QColor, QPainter, QPen, QBrush, QPixmap
+from qgis.PyQt.QtCore import Qt, pyqtSignal, QPoint
+from qgis.PyQt.QtGui import QIcon, QColor, QPainter, QPen, QBrush, QPixmap, QPolygon
 from qgis.core import QgsProject, QgsVectorLayer
 
 from .i18n import tr, get_help
@@ -27,7 +27,7 @@ class LvtKmlViewDialog(QDialog):
         self.config_manager = ConfigManager()
         self.lang = 'vi'
         
-        self.setMinimumSize(1000, 900) # Wider for Live Preview
+        self.setMinimumSize(1000, 900)
         self._setup_ui()
         self._load_current_layers()
         self._refresh_ui_text()
@@ -40,9 +40,8 @@ class LvtKmlViewDialog(QDialog):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 10, 0)
-        main_layout.addWidget(left_widget, 6) # 60% width
+        main_layout.addWidget(left_widget, 6)
 
-        # Language Bar
         top_layout = QHBoxLayout()
         self.btn_lang = QPushButton(); self.btn_lang.setFixedWidth(100)
         self.btn_lang.clicked.connect(self._toggle_language)
@@ -50,17 +49,11 @@ class LvtKmlViewDialog(QDialog):
         left_layout.addLayout(top_layout)
 
         self.tabs = QTabWidget(); left_layout.addWidget(self.tabs)
-        
-        # Tab 1: SHP -> KML
         self.tab_shp2kml = QWidget(); self._setup_tab_shp2kml(); self.tabs.addTab(self.tab_shp2kml, "SHP → KML")
-        # Tab 2: KML -> SHP
         self.tab_kml2shp = QWidget(); self._setup_tab_kml2shp(); self.tabs.addTab(self.tab_kml2shp, "KML → SHP")
-        # Tab 3: Guide
         self.tab_guide = QWidget(); self._setup_tab_guide(); self.tabs.addTab(self.tab_guide, tr('tab_help', self.lang))
-        # Tab 4: Author
         self.tab_author = QWidget(); self._setup_tab_author(); self.tabs.addTab(self.tab_author, "Tác giả")
 
-        # Bottom Buttons
         btn_layout = QHBoxLayout()
         self.btn_save_cfg = QPushButton(tr('btn_save_cfg', self.lang)); self.btn_save_cfg.setIcon(QIcon(':/images/themes/default/mActionFileSave.svg'))
         self.btn_load_cfg = QPushButton(tr('btn_load_cfg', self.lang)); self.btn_load_cfg.setIcon(QIcon(':/images/themes/default/mActionFolder.svg'))
@@ -71,9 +64,8 @@ class LvtKmlViewDialog(QDialog):
         # RIGHT PANE: Live Preview
         right_widget = QGroupBox("LIVE PREVIEW")
         right_layout = QVBoxLayout(right_widget)
-        main_layout.addWidget(right_widget, 4) # 40% width
+        main_layout.addWidget(right_widget, 4)
 
-        # Polygon Preview Box
         right_layout.addWidget(QLabel("<b>Polygon Preview (Contrast Test):</b>"))
         self.poly_preview = QFrame()
         self.poly_preview.setFixedSize(350, 200)
@@ -82,10 +74,8 @@ class LvtKmlViewDialog(QDialog):
         self.poly_preview.paintEvent = self._paint_poly_preview
         right_layout.addWidget(self.poly_preview)
 
-        # Popup Preview Box
         right_layout.addWidget(QLabel("<b>Popup Preview:</b>"))
-        self.html_preview = QTextEdit()
-        self.html_preview.setReadOnly(True)
+        self.html_preview = QTextEdit(); self.html_preview.setReadOnly(True)
         right_layout.addWidget(self.html_preview)
         
         self.btn_export_big = QPushButton("🚀 EXPORT KML")
@@ -96,8 +86,6 @@ class LvtKmlViewDialog(QDialog):
 
     def _setup_tab_shp2kml(self):
         layout = QVBoxLayout(self.tab_shp2kml)
-        
-        # Section 1-5 (Same as V005 but tighter)
         self.gp_io = QGroupBox("1. Input / Output"); io_ly = QVBoxLayout()
         r1 = QHBoxLayout(); r1.addWidget(QLabel("SHP:")); self.txt_shp = QLineEdit(); r1.addWidget(self.txt_shp, 1)
         r1.addWidget(QLabel("Out:")); self.rad_kmz = QRadioButton("KMZ"); self.rad_kmz.setChecked(True); r1.addWidget(self.rad_kmz)
@@ -124,24 +112,19 @@ class LvtKmlViewDialog(QDialog):
         self.gp_hl = QGroupBox("5. Highlighting"); hl_ly = QVBoxLayout()
         r3 = QHBoxLayout(); self.txt_h_title = QLineEdit("Thông tin"); self.btn_h_bg = QPushButton("#1B5E20"); r3.addWidget(QLabel("Title:")); r3.addWidget(self.txt_h_title, 1); r3.addWidget(QLabel("BG:")); r3.addWidget(self.btn_h_bg)
         hl_ly.addLayout(r3); self.chk_row_hl = QCheckBox("Enable Highlighting"); hl_ly.addWidget(self.chk_row_hl)
-        self.tbl_rules = QTableWidget(0, 5); self.tbl_rules.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); hl_ly.addWidget(self.tbl_rules)
+        self.tbl_rules = QTableWidget(0, 5); hl_ly.addWidget(self.tbl_rules)
         r4 = QHBoxLayout(); btn_add = QPushButton("+"); btn_del = QPushButton("-"); btn_add.clicked.connect(self._add_rule); btn_del.clicked.connect(self._del_rule); r4.addWidget(btn_add); r4.addWidget(btn_del); r4.addStretch()
         hl_ly.addLayout(r4); self.gp_hl.setLayout(hl_ly); layout.addWidget(self.gp_hl)
 
     def _connect_live_preview(self):
-        # Connect everything to _trigger_refresh
-        widgets = [self.cbo_name1, self.cbo_name2, self.txt_sep, self.sld_op, self.spn_width, self.txt_h_title, self.chk_row_hl]
-        for w in widgets:
+        for w in [self.cbo_name1, self.cbo_name2, self.txt_sep, self.sld_op, self.spn_width, self.txt_h_title, self.chk_row_hl]:
             if hasattr(w, 'currentIndexChanged'): w.currentIndexChanged.connect(self._trigger_refresh)
             if hasattr(w, 'textChanged'): w.textChanged.connect(self._trigger_refresh)
             if hasattr(w, 'valueChanged'): w.valueChanged.connect(self._trigger_refresh)
             if hasattr(w, 'toggled'): w.toggled.connect(self._trigger_refresh)
-        
         self.btn_border.clicked.connect(lambda: (self._pick_color(self.btn_border), self._trigger_refresh()))
         self.btn_fill.clicked.connect(lambda: (self._pick_color(self.btn_fill), self._trigger_refresh()))
         self.btn_h_bg.clicked.connect(lambda: (self._pick_color(self.btn_h_bg), self._trigger_refresh()))
-        
-        # Table changes
         self.tbl_fields.itemChanged.connect(self._trigger_refresh)
         self.tbl_rules.itemChanged.connect(self._trigger_refresh)
 
@@ -152,21 +135,12 @@ class LvtKmlViewDialog(QDialog):
     def _paint_poly_preview(self, event):
         painter = QPainter(self.poly_preview)
         painter.setRenderHint(QPainter.Antialiasing)
-        
-        # Get style
-        b_color = QColor(self.btn_border.text())
-        f_color = QColor(self.btn_fill.text())
-        width = self.spn_width.value()
-        opacity = int(self.sld_op.value() * 2.55) # 0-100 to 0-255
-        
-        f_color.setAlpha(opacity)
-        
-        painter.setPen(QPen(b_color, width))
-        painter.setBrush(QBrush(f_color))
-        
-        # Draw a sample polygon (diamond shape)
-        points = [Qt.QtCore.QPoint(175, 40), Qt.QtCore.QPoint(300, 100), Qt.QtCore.QPoint(175, 160), Qt.QtCore.QPoint(50, 100)]
-        painter.drawPolygon(Qt.QtGui.QPolygon(points))
+        b_color = QColor(self.btn_border.text()); f_color = QColor(self.btn_fill.text()); width = self.spn_width.value()
+        opacity = int(self.sld_op.value() * 2.55); f_color.setAlpha(opacity)
+        painter.setPen(QPen(b_color, width)); painter.setBrush(QBrush(f_color))
+        # FIXED: Correct QPoint usage
+        points = [QPoint(175, 40), QPoint(300, 100), QPoint(175, 160), QPoint(50, 100)]
+        painter.drawPolygon(QPolygon(points))
 
     def _update_popup_preview(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
@@ -190,10 +164,12 @@ class LvtKmlViewDialog(QDialog):
         layout = QVBoxLayout(self.tab_author); self.author = QTextEdit(); self.author.setReadOnly(True); layout.addWidget(self.author)
 
     def _refresh_ui_text(self):
-        self.setWindowTitle("LVT have KML view _V006")
+        self.setWindowTitle("LVT have KML view _V007")
         self.btn_lang.setText("🌐 " + ("English" if self.lang == 'vi' else "Tiếng Việt"))
         self.guide.setHtml(get_help(self.lang))
-        # (Other translations same as V005...)
+        img_path = os.path.join(self.plugin_dir, 'author.png')
+        img_url = f"file:///{img_path.replace('\\', '/')}"
+        self.author.setHtml(f'<div style="text-align:center"><img src="{img_url}" width="400"><h2>Lộc Vũ Trung</h2></div>')
 
     def _toggle_language(self): self.lang = 'en' if self.lang == 'vi' else 'vi'; self._refresh_ui_text(); self._trigger_refresh()
 
@@ -224,7 +200,6 @@ class LvtKmlViewDialog(QDialog):
             self.tbl_fields.setItem(i, 1, QTableWidgetItem(name)); self.tbl_fields.setItem(i, 2, QTableWidgetItem(name)); self.tbl_fields.setItem(i, 3, QTableWidgetItem(""))
 
     def _get_current_config(self):
-        # Simplified for preview logic
         rules = []
         for i in range(self.tbl_rules.rowCount()):
             rules.append({
@@ -237,8 +212,7 @@ class LvtKmlViewDialog(QDialog):
             })
         df = []
         for i in range(self.tbl_fields.rowCount()):
-            chk = self.tbl_fields.cellWidget(i,0)
-            if chk and chk.isChecked(): df.append({'field': self.tbl_fields.item(i,1).text(), 'alias': self.tbl_fields.item(i,2).text(), 'suffix': self.tbl_fields.item(i,3).text(), 'order': i})
+            chk = self.tbl_fields.cellWidget(i,0); df.append({'field': self.tbl_fields.item(i,1).text(), 'alias': self.tbl_fields.item(i,2).text(), 'suffix': self.tbl_fields.item(i,3).text(), 'order': i})
         return {
             'name_fields': {'field1': self.cbo_name1.currentText(), 'field2': self.cbo_name2.currentText(), 'separator': self.txt_sep.text(), 'font_size': 12},
             'description_fields': df, 'polygon_style': {'border_color': self.btn_border.text(), 'border_width': self.spn_width.value(), 'fill_color': self.btn_fill.text(), 'fill_opacity': self.sld_op.value()},
@@ -256,7 +230,6 @@ class LvtKmlViewDialog(QDialog):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
         if not layers: return
         builder = KmlBuilder(self._get_current_config())
-        success, msg = builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
-        if success: QMessageBox.information(self, "Success", tr('msg_success', self.lang))
+        builder.build(layers[0], out_path, 'kmz' if out_path.lower().endswith('.kmz') else 'kml')
 
-    def _convert_kml(self): pass # Implemented in V005
+    def _convert_kml(self): pass
