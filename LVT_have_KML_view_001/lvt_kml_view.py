@@ -33,8 +33,11 @@ class LvtKmlView:
 
     def unload(self):
         """Called when plugin is unloaded."""
-        self.iface.removeToolBarIcon(self.action)
-        self.iface.removePluginMenu('LVT have KML view', self.action)
+        # Remove from toolbar
+        if self.action:
+            self.iface.removeToolBarIcon(self.action)
+            # Use correct method for Vector menu
+            self.iface.removePluginVectorMenu('LVT have KML view', self.action)
 
     def run(self):
         """Open the plugin dialog."""
