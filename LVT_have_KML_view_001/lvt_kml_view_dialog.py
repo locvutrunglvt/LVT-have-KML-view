@@ -135,6 +135,52 @@ class LvtKmlViewDialog(QDialog):
         gp_desc.setLayout(desc_layout)
         layout.addWidget(gp_desc)
 
+        # Section 4: Polygon Style & Conditional Coloring
+        gp_poly = QGroupBox(tr('sec_style', self.lang))
+        poly_layout = QVBoxLayout()
+        
+        # Basic Style (Border/Fill)
+        b_layout = QHBoxLayout()
+        b_layout.addWidget(QLabel(tr('lbl_border', self.lang)))
+        self.btn_border_color = QPushButton("#FF0000")
+        self.btn_border_color.clicked.connect(lambda: self._pick_color(self.btn_border_color))
+        b_layout.addWidget(self.btn_border_color)
+        
+        b_layout.addWidget(QLabel(tr('lbl_width', self.lang)))
+        self.spn_border_width = QSpinBox()
+        self.spn_border_width.setRange(1, 10)
+        self.spn_border_width.setValue(2)
+        b_layout.addWidget(self.spn_border_width)
+        
+        poly_layout.addLayout(b_layout)
+        
+        f_layout = QHBoxLayout()
+        f_layout.addWidget(QLabel(tr('lbl_fill', self.lang)))
+        self.btn_fill_color = QPushButton("#00FF00")
+        self.btn_fill_color.clicked.connect(lambda: self._pick_color(self.btn_fill_color))
+        f_layout.addWidget(self.btn_fill_color)
+        
+        f_layout.addWidget(QLabel(tr('lbl_opacity', self.lang)))
+        self.spn_opacity = QSpinBox()
+        self.spn_opacity.setRange(0, 100)
+        self.spn_opacity.setValue(50)
+        f_layout.addWidget(self.spn_opacity)
+        
+        poly_layout.addLayout(f_layout)
+        
+        # Conditional Coloring
+        self.chk_cond = QCheckBox(tr('chk_cond', self.lang))
+        poly_layout.addWidget(self.chk_cond)
+        
+        cond_field_layout = QHBoxLayout()
+        cond_field_layout.addWidget(QLabel(tr('lbl_cond_field', self.lang)))
+        self.cbo_cond_field = QComboBox()
+        cond_field_layout.addWidget(self.cbo_cond_field, 1)
+        poly_layout.addLayout(cond_field_layout)
+        
+        gp_poly.setLayout(poly_layout)
+        layout.addWidget(gp_poly)
+
         # Section 5: Header & Row Highlight - FEATURE: Bold/Italic
         gp_style = QGroupBox(tr('sec_header', self.lang))
         style_layout = QVBoxLayout()
@@ -270,6 +316,10 @@ class LvtKmlViewDialog(QDialog):
         self.cbo_name1.addItems([''] + fields)
         self.cbo_name2.addItems([''] + fields)
         
+        # Update Conditional Field combo
+        self.cbo_cond_field.clear()
+        self.cbo_cond_field.addItems([''] + fields)
+        
         # Update Table
         self.tbl_fields.setRowCount(len(fields))
         for i, f_name in enumerate(fields):
@@ -325,6 +375,14 @@ class LvtKmlViewDialog(QDialog):
         self.btn_browse_kml.setText(tr('btn_browse', self.lang))
         self.btn_convert.setText(tr('btn_convert', self.lang))
         self.btn_add_to_map.setText(tr('btn_add_to_map', self.lang))
+        
+        # Cập nhật các GroupBox Title (nếu cần thiết có thể thêm ở đây)
+
+    def _pick_color(self, button):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            button.setText(color.name().upper())
+            button.setStyleSheet(f"background-color: {color.name()}; color: {'white' if color.lightness() < 128 else 'black'}")
 
     def _get_current_config(self):
         """Gather all UI values into a config dict for KmlBuilder."""
@@ -350,6 +408,19 @@ class LvtKmlViewDialog(QDialog):
                     'enabled': True
                 })
         config['description_fields'] = desc_fields
+        
+        config['polygon_style'] = {
+            'border_color': self.btn_border_color.text(),
+            'border_width': self.spn_border_width.value(),
+            'fill_color': self.btn_fill_color.text(),
+            'fill_opacity': self.spn_opacity.value()
+        }
+        
+        config['conditional_colors'] = {
+            'enabled': self.chk_cond.isChecked(),
+            'field': self.cbo_cond_field.currentText(),
+            'rules': [] # Rules would normally be added via another dialog or table
+        }
         
         config['header'] = {
             'title': self.txt_header_title.text(),
