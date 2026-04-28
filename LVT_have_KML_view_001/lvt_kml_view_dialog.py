@@ -129,9 +129,28 @@ class LvtKmlViewDialog(QDialog):
         ly = QVBoxLayout(self.tab_guide); self.guide = QTextEdit(); self.guide.setReadOnly(True); ly.addWidget(self.guide)
 
     def _setup_tab_kml2shp(self):
-        ly = QVBoxLayout(self.tab_kml2shp); self.lbl_kml_src = QLabel(); ly.addWidget(self.lbl_kml_src); self.txt_kml_in = QLineEdit(); ly.addWidget(self.txt_kml_in)
-        self.lbl_crs = QLabel(); ly.addWidget(self.lbl_crs); self.txt_crs = QLineEdit("EPSG:4326"); ly.addWidget(self.txt_crs)
-        self.btn_extract = QPushButton(); self.btn_extract.clicked.connect(self._convert_kml); ly.addWidget(self.btn_extract); ly.addStretch()
+        ly = QVBoxLayout(self.tab_kml2shp)
+        self.lbl_kml_src = QLabel()
+        ly.addWidget(self.lbl_kml_src)
+        
+        row_kml = QHBoxLayout()
+        self.txt_kml_in = QLineEdit()
+        self.btn_browse_kml = QPushButton("...")
+        self.btn_browse_kml.setFixedWidth(40)
+        self.btn_browse_kml.clicked.connect(self._browse_kml)
+        row_kml.addWidget(self.txt_kml_in)
+        row_kml.addWidget(self.btn_browse_kml)
+        ly.addLayout(row_kml)
+        
+        self.lbl_crs = QLabel()
+        ly.addWidget(self.lbl_crs)
+        self.txt_crs = QLineEdit("EPSG:4326")
+        ly.addWidget(self.txt_crs)
+        
+        self.btn_extract = QPushButton()
+        self.btn_extract.clicked.connect(self._convert_kml)
+        ly.addWidget(self.btn_extract)
+        ly.addStretch()
 
     def _refresh_ui_text(self):
         self.setWindowTitle("LVT have KML view _V013")
@@ -341,6 +360,11 @@ class LvtKmlViewDialog(QDialog):
         self.txt_h_title.setText("Thông tin"); self.btn_h_bg.setText("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
         self.chk_row_hl.setChecked(False); self.tbl_rules.setRowCount(0); self._on_layer_changed()
         
+    def _browse_kml(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Chọn File KML/KMZ", "", "KML/KMZ Files (*.kml *.kmz)")
+        if file_path:
+            self.txt_kml_in.setText(file_path)
+
     def _convert_kml(self):
         # Implementation for KML to SHP
         kml_path = self.txt_kml_in.text()
