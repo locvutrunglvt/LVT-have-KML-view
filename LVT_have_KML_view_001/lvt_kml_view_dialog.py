@@ -85,8 +85,8 @@ class LvtKmlViewDialog(QDialog):
         
         self.gp_name = QGroupBox(); n_ly = QHBoxLayout()
         self.cbo_name1 = QComboBox(); self.txt_sep = QLineEdit(" - "); self.cbo_name2 = QComboBox()
-        self.spn_name_size = QSpinBox(); self.spn_name_size.setRange(8, 72); self.spn_name_size.setValue(12)
-        self.btn_name_color = QPushButton("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
+        self.btn_name_color = QPushButton("#000000")
+        self.btn_name_color.setStyleSheet("background-color: #000000; color: white;")
         
         n_ly.addWidget(QLabel("F1:")); n_ly.addWidget(self.cbo_name1, 1)
         n_ly.addWidget(QLabel("Sep:")); n_ly.addWidget(self.txt_sep)
@@ -276,7 +276,9 @@ class LvtKmlViewDialog(QDialog):
         if idx2 >= 0: self.cbo_name2.setCurrentIndex(idx2)
         self.txt_sep.setText(nm.get('separator', ' - '))
         self.spn_name_size.setValue(nm.get('font_size', 12))
-        c_nm = nm.get('font_color', '#FFFFFF'); self.btn_name_color.setText(c_nm); self.btn_name_color.setStyleSheet(f"background-color: {c_nm}")
+        c_nm = nm.get('font_color', '#000000')
+        self.btn_name_color.setText(c_nm)
+        self.btn_name_color.setStyleSheet(f"background-color: {c_nm}; color: {'white' if c_nm.lower()=='#000000' else 'black'};")
         
         ps = cfg.get('polygon_style', {})
         self.spn_width.setValue(ps.get('border_width', 2))
@@ -355,7 +357,7 @@ class LvtKmlViewDialog(QDialog):
 
     def _reset_config(self):
         self.txt_sep.setText(" - "); self.spn_name_size.setValue(12)
-        self.btn_name_color.setText("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
+        self.btn_name_color.setText("#000000"); self.btn_name_color.setStyleSheet("background-color: #000000; color: white;")
         self.btn_border.setText("#FF0000"); self.btn_border.setStyleSheet("background-color: #FF0000")
         self.btn_fill.setText("#00FF00"); self.btn_fill.setStyleSheet("background-color: #00FF00")
         self.spn_width.setValue(2); self.sld_op.setValue(50)

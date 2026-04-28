@@ -32,14 +32,13 @@ class KmlToShpConverter:
         for feat in features:
             desc = str(feat['description']) if 'description' in feat.fields().names() else ""
             if desc:
-                # Find patterns like <td>Key:</td><td>Value</td> or <b>Key:</b> Value
-                matches = re.findall(r'<td>(.*?):?\s*</td>\s*<td>(.*?)</td>', desc, re.IGNORECASE)
-                if not matches:
-                    matches = re.findall(r'<b>(.*?):?\s*</b>\s*(.*?)<br>', desc, re.IGNORECASE)
+                # LVT Plugin HTML template output matching
+                matches = re.findall(r'<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>', desc, re.IGNORECASE|re.DOTALL)
                 
+                # Filter out the header row if it's caught
                 for key, val in matches:
                     clean_key = self._clean_field_name(key)
-                    if clean_key:
+                    if clean_key and clean_key.lower() not in ['th_ng_tin']: # skip header row noise
                         all_new_fields.add(clean_key)
 
         # 4. Initialize Output SHP Writer
@@ -73,16 +72,15 @@ class KmlToShpConverter:
             # Parse and add dynamic attributes
             desc = str(feat['description']) if 'description' in feat.fields().names() else ""
             if desc:
-                matches = re.findall(r'<td>(.*?):?\s*</td>\s*<td>(.*?)</td>', desc, re.IGNORECASE)
-                if not matches:
-                    matches = re.findall(r'<b>(.*?):?\s*</b>\s*(.*?)<br>', desc, re.IGNORECASE)
+                matches = re.findall(r'<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>', desc, re.IGNORECASE|re.DOTALL)
                 
                 for key, val in matches:
                     clean_key = self._clean_field_name(key)
+                    clean_val = re.sub(r'<.*?>', '', val).strip() # Strip HTML tags from value
                     # Find index of this field
                     f_idx = fields.indexFromName(clean_key)
                     if f_idx != -1:
-                        new_feat.setAttribute(f_idx, val.strip())
+                        new_feat.setAttribute(f_idx, clean_val)
             
             writer.addFeature(new_feat)
             

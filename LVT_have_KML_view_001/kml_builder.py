@@ -123,11 +123,23 @@ class KmlBuilder:
             lines.append('<MultiGeometry>')
             for part in geom.asMultiPolygon():
                 lines.extend(self._single_poly(part))
+            # Add centroid point so label displays on Google Earth
+            centroid = geom.poleOfInaccessibility(0.0001) if hasattr(geom, 'poleOfInaccessibility') else geom.centroid()
+            if centroid and centroid.asPoint():
+                pt = centroid.asPoint()
+                lines.append(f'<Point><coordinates>{pt.x()},{pt.y()},0</coordinates></Point>')
             lines.append('</MultiGeometry>')
         else:
             p = geom.asPolygon()
             if p:
+                lines.append('<MultiGeometry>')
                 lines.extend(self._single_poly(p))
+                # Add centroid point so label displays on Google Earth
+                centroid = geom.poleOfInaccessibility(0.0001) if hasattr(geom, 'poleOfInaccessibility') else geom.centroid()
+                if centroid and centroid.asPoint():
+                    pt = centroid.asPoint()
+                    lines.append(f'<Point><coordinates>{pt.x()},{pt.y()},0</coordinates></Point>')
+                lines.append('</MultiGeometry>')
         return lines
 
     def _single_poly(self, rings):
