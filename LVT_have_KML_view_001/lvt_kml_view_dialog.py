@@ -85,6 +85,7 @@ class LvtKmlViewDialog(QDialog):
         
         self.gp_name = QGroupBox(); n_ly = QHBoxLayout()
         self.cbo_name1 = QComboBox(); self.txt_sep = QLineEdit(" - "); self.cbo_name2 = QComboBox()
+        self.spn_name_size = QSpinBox(); self.spn_name_size.setRange(8, 72); self.spn_name_size.setValue(12)
         self.btn_name_color = QPushButton("#000000")
         self.btn_name_color.setStyleSheet("background-color: #000000; color: white;")
         
