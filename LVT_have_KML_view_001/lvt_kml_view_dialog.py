@@ -27,16 +27,16 @@ class LvtKmlViewDialog(QDialog):
         self.config_manager = ConfigManager()
         self.lang = 'vi'
         
-        self.resize(900, 750) 
+        self.resize(950, 750) 
         self._setup_ui()
         self._load_current_layers()
         self._refresh_ui_text()
         self._connect_live_preview()
         
-        # Connect main buttons
         self.btn_close.clicked.connect(self.close)
         self.btn_save_cfg.clicked.connect(self._save_config)
         self.btn_load_cfg.clicked.connect(self._load_config)
+        self.btn_reset.clicked.connect(self._reset_config)
         
         # Trigger read input with a small delay for safety
         QtCore.QTimer.singleShot(1000, self._on_layer_changed)
@@ -78,24 +78,38 @@ class LvtKmlViewDialog(QDialog):
     def _setup_tab_shp2kml(self):
         layout = QVBoxLayout(self.tab_shp2kml)
         self.gp_io = QGroupBox("1. Input / Output"); io_ly = QVBoxLayout()
-        self.txt_shp = QLineEdit(); io_ly.addWidget(QLabel("SHP Source:")); io_ly.addWidget(self.txt_shp)
-        r2 = QHBoxLayout(); r2.addWidget(QLabel("Select Layer:")); self.cbo_layers = QComboBox(); r2.addWidget(self.cbo_layers, 1); io_ly.addLayout(r2)
+        r2 = QHBoxLayout(); r2.addWidget(QLabel("Select Layer:")); self.cbo_layers = QComboBox(); r2.addWidget(self.cbo_layers, 1)
+        self.btn_reset = QPushButton("Reset Cấu Hình"); r2.addWidget(self.btn_reset)
+        io_ly.addLayout(r2)
         self.gp_io.setLayout(io_ly); layout.addWidget(self.gp_io)
+        
         self.gp_name = QGroupBox("2. Name Settings"); n_ly = QHBoxLayout()
         self.cbo_name1 = QComboBox(); self.txt_sep = QLineEdit(" - "); self.cbo_name2 = QComboBox()
-        n_ly.addWidget(QLabel("F1:")); n_ly.addWidget(self.cbo_name1, 1); n_ly.addWidget(QLabel("Sep:")); n_ly.addWidget(self.txt_sep); n_ly.addWidget(QLabel("F2:")); n_ly.addWidget(self.cbo_name2, 1)
+        self.spn_name_size = QSpinBox(); self.spn_name_size.setRange(8, 72); self.spn_name_size.setValue(12)
+        self.btn_name_color = QPushButton("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
+        
+        n_ly.addWidget(QLabel("F1:")); n_ly.addWidget(self.cbo_name1, 1)
+        n_ly.addWidget(QLabel("Sep:")); n_ly.addWidget(self.txt_sep)
+        n_ly.addWidget(QLabel("F2:")); n_ly.addWidget(self.cbo_name2, 1)
+        n_ly.addWidget(QLabel("Size:")); n_ly.addWidget(self.spn_name_size)
+        n_ly.addWidget(QLabel("Color:")); n_ly.addWidget(self.btn_name_color)
         self.gp_name.setLayout(n_ly); layout.addWidget(self.gp_name)
+        
         self.gp_desc = QGroupBox("3. Popup Info"); d_ly = QVBoxLayout()
         self.tbl_fields = QTableWidget(0, 4); self.tbl_fields.setHorizontalHeaderLabels(["√", "Field", "Alias", "Unit"])
         self.tbl_fields.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); d_ly.addWidget(self.tbl_fields)
         self.gp_desc.setLayout(d_ly); layout.addWidget(self.gp_desc)
+        
         self.gp_poly = QGroupBox("4. Style"); p_ly = QHBoxLayout()
         self.btn_border = QPushButton("#FF0000"); self.spn_width = QSpinBox(); self.btn_fill = QPushButton("#00FF00"); self.sld_op = QSlider(Qt.Horizontal)
         self.sld_op.setRange(0, 100); self.sld_op.setValue(50)
+        self.btn_border.setStyleSheet("background-color: #FF0000"); self.btn_fill.setStyleSheet("background-color: #00FF00")
         p_ly.addWidget(QLabel("V:")); p_ly.addWidget(self.btn_border); p_ly.addWidget(QLabel("W:")); p_ly.addWidget(self.spn_width); p_ly.addWidget(QLabel("N:")); p_ly.addWidget(self.btn_fill); p_ly.addWidget(QLabel("Op:")); p_ly.addWidget(self.sld_op)
         self.gp_poly.setLayout(p_ly); layout.addWidget(self.gp_poly)
+        
         self.gp_hl = QGroupBox("5. Conditions"); hl_ly = QVBoxLayout()
-        r3 = QHBoxLayout(); self.txt_h_title = QLineEdit("Thông tin"); self.btn_h_bg = QPushButton("#1B5E20"); r3.addWidget(QLabel("Header:")); r3.addWidget(self.txt_h_title, 1); r3.addWidget(self.btn_h_bg)
+        r3 = QHBoxLayout(); self.txt_h_title = QLineEdit("Thông tin"); self.btn_h_bg = QPushButton("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
+        r3.addWidget(QLabel("Header:")); r3.addWidget(self.txt_h_title, 1); r3.addWidget(self.btn_h_bg)
         hl_ly.addLayout(r3); self.chk_row_hl = QCheckBox("Enable Highlighting"); hl_ly.addWidget(self.chk_row_hl)
         self.tbl_rules = QTableWidget(0, 5); self.tbl_rules.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch); hl_ly.addWidget(self.tbl_rules)
         r4 = QHBoxLayout(); btn_add = QPushButton("+ Add Rule"); btn_del = QPushButton("- Del"); btn_add.clicked.connect(self._add_rule); btn_del.clicked.connect(self._del_rule); r4.addWidget(btn_add); r4.addWidget(btn_del); r4.addStretch()
@@ -108,26 +122,29 @@ class LvtKmlViewDialog(QDialog):
         ly = QVBoxLayout(self.tab_guide); self.guide = QTextEdit(); self.guide.setReadOnly(True); ly.addWidget(self.guide)
 
     def _refresh_ui_text(self):
-        self.setWindowTitle("LVT have KML view _V011")
+        self.setWindowTitle("LVT have KML view _V012")
         self.btn_lang.setText("🌐 " + ("English" if self.lang == 'vi' else "Tiếng Việt"))
-        img_path = os.path.join(self.plugin_dir, 'author.png'); img_url = f"file:///{img_path.replace('\\', '/')}"
-        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><img src='{img_url}' width='350'><h1 style='color:#1B5E20'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold'>Chuyên gia Công nghệ GIS & Lâm nghiệp</p><hr><div style='text-align:left;display:inline-block;width:80%'><b>📱 Zalo:</b> 0913 191 178<br><b>🌐 Website:</b> locvutrung.lvtcenter.it.com<br><b>🎬 YouTube:</b> youtube.com/@locvutrung<br></div><div style='margin-top:15px;background:#fff;padding:10px;border-radius:5px;border-left:5px solid #1B5E20;text-align:left'><b>Phạm vi chuyên môn:</b><br>• FSC/CoC | • EUDR | • Webapp<br>• Appsheet | • QGIS | • Lâm sinh | • DATA</div></div></div>"""
+        author_html = f"""<div style='font-family:Arial;text-align:center;color:#333'><div style='background:#f4f4f4;padding:20px;border-radius:10px'><h1 style='color:#1B5E20'>Lộc Vũ Trung</h1><p style='font-size:18px;font-weight:bold'>Chuyên gia Công nghệ GIS & Lâm nghiệp</p><hr><div style='text-align:left;display:inline-block;width:80%'><b>📱 Zalo:</b> 0913 191 178<br><b>🌐 Website:</b> locvutrung.lvtcenter.it.com<br><b>🎬 YouTube:</b> youtube.com/@locvutrung<br></div><div style='margin-top:15px;background:#fff;padding:10px;border-radius:5px;border-left:5px solid #1B5E20;text-align:left'><b>Phạm vi chuyên môn:</b><br>• FSC/CoC | • EUDR | • Webapp<br>• Appsheet | • QGIS | • Lâm sinh | • DATA</div></div></div>"""
         self.author.setHtml(author_html); self.guide.setHtml(get_help(self.lang))
 
     def _load_current_layers(self):
+        self.cbo_layers.blockSignals(True)
         self.cbo_layers.clear()
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer): self.cbo_layers.addItem(layer.name())
+        self.cbo_layers.blockSignals(False)
 
     def _connect_live_preview(self):
-        for w in [self.cbo_layers, self.cbo_name1, self.cbo_name2, self.txt_sep, self.sld_op, self.spn_width, self.txt_h_title, self.chk_row_hl]:
-            if hasattr(w, 'currentIndexChanged'): w.currentIndexChanged.connect(self._trigger_refresh)
+        self.cbo_layers.currentIndexChanged.connect(self._on_layer_changed)
+        for w in [self.cbo_name1, self.cbo_name2, self.txt_sep, self.sld_op, self.spn_width, self.txt_h_title, self.chk_row_hl, self.spn_name_size]:
             if hasattr(w, 'textChanged'): w.textChanged.connect(self._trigger_refresh)
             if hasattr(w, 'valueChanged'): w.valueChanged.connect(self._trigger_refresh)
             if hasattr(w, 'toggled'): w.toggled.connect(self._trigger_refresh)
+            if hasattr(w, 'currentIndexChanged'): w.currentIndexChanged.connect(self._trigger_refresh)
         self.btn_border.clicked.connect(lambda: (self._pick_color(self.btn_border), self._trigger_refresh()))
         self.btn_fill.clicked.connect(lambda: (self._pick_color(self.btn_fill), self._trigger_refresh()))
         self.btn_h_bg.clicked.connect(lambda: (self._pick_color(self.btn_h_bg), self._trigger_refresh()))
+        self.btn_name_color.clicked.connect(lambda: (self._pick_color(self.btn_name_color), self._trigger_refresh()))
         self.tbl_fields.itemChanged.connect(self._trigger_refresh); self.tbl_rules.itemChanged.connect(self._trigger_refresh)
 
     def _trigger_refresh(self):
@@ -143,7 +160,7 @@ class LvtKmlViewDialog(QDialog):
 
     def _on_layer_changed(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
-        if layers: self.txt_shp.setText(layers[0].source()); self._update_fields(layers[0]); self._trigger_refresh()
+        if layers: self._update_fields(layers[0]); self._trigger_refresh()
 
     def _update_fields(self, layer):
         self.tbl_fields.blockSignals(True); fnames = [f.name() for f in layer.fields()]
@@ -172,7 +189,13 @@ class LvtKmlViewDialog(QDialog):
             if chk and chk.isChecked():
                 f_item = self.tbl_fields.item(i,1); a_item = self.tbl_fields.item(i,2); s_item = self.tbl_fields.item(i,3)
                 if f_item and a_item: df.append({'field': f_item.text(), 'alias': a_item.text(), 'suffix': s_item.text() if s_item else "", 'order': i})
-        return {'name_fields': {'field1': self.cbo_name1.currentText(), 'field2': self.cbo_name2.currentText(), 'separator': self.txt_sep.text(), 'font_size': 12}, 'description_fields': df, 'polygon_style': {'border_color': self.btn_border.text(), 'border_width': self.spn_width.value(), 'fill_color': self.btn_fill.text(), 'fill_opacity': self.sld_op.value()}, 'header': {'title': self.txt_h_title.text(), 'bg_color': self.btn_h_bg.text(), 'text_color': "#FFFFFF", 'bold': True, 'font_size': 14}, 'row_highlights': {'enabled': self.chk_row_hl.isChecked(), 'rules': rules}}
+        return {
+            'name_fields': {'field1': self.cbo_name1.currentText(), 'field2': self.cbo_name2.currentText(), 'separator': self.txt_sep.text(), 'font_size': self.spn_name_size.value(), 'font_color': self.btn_name_color.text()}, 
+            'description_fields': df, 
+            'polygon_style': {'border_color': self.btn_border.text(), 'border_width': self.spn_width.value(), 'fill_color': self.btn_fill.text(), 'fill_opacity': self.sld_op.value()}, 
+            'header': {'title': self.txt_h_title.text(), 'bg_color': self.btn_h_bg.text(), 'text_color': "#FFFFFF", 'bold': True, 'font_size': 14}, 
+            'row_highlights': {'enabled': self.chk_row_hl.isChecked(), 'rules': rules}
+        }
 
     def _export(self):
         layers = QgsProject.instance().mapLayersByName(self.cbo_layers.currentText())
@@ -195,6 +218,14 @@ class LvtKmlViewDialog(QDialog):
     def _del_rule(self): self.tbl_rules.removeRow(self.tbl_rules.currentRow())
     def _save_config(self): pass
     def _load_config(self): pass
+    def _reset_config(self):
+        self.txt_sep.setText(" - "); self.spn_name_size.setValue(12)
+        self.btn_name_color.setText("#FFFFFF"); self.btn_name_color.setStyleSheet("background-color: #FFFFFF")
+        self.btn_border.setText("#FF0000"); self.btn_border.setStyleSheet("background-color: #FF0000")
+        self.btn_fill.setText("#00FF00"); self.btn_fill.setStyleSheet("background-color: #00FF00")
+        self.spn_width.setValue(2); self.sld_op.setValue(50)
+        self.txt_h_title.setText("Thông tin"); self.btn_h_bg.setText("#1B5E20"); self.btn_h_bg.setStyleSheet("background-color: #1B5E20")
+        self.chk_row_hl.setChecked(False); self.tbl_rules.setRowCount(0); self._on_layer_changed()
     def _setup_tab_kml2shp(self):
         ly = QVBoxLayout(self.tab_kml2shp); ly.addWidget(QLabel("KML Source:")); self.txt_kml_in = QLineEdit(); ly.addWidget(self.txt_kml_in)
         ly.addWidget(QLabel("Target CRS:")); self.txt_crs = QLineEdit("EPSG:4326"); ly.addWidget(self.txt_crs); btn = QPushButton("🔄 EXTRACT NOW"); btn.clicked.connect(self._convert_kml); ly.addWidget(btn); ly.addStretch()
