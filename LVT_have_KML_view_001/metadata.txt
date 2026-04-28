@@ -1,0 +1,29 @@
+[general]
+name=LVT have KML view
+qgisMinimumVersion=3.0
+description=Convert Shapefile to KML/KMZ with customizable HTML popup for Google Earth Mobile
+version=0.1.0
+author=LVT (Lộc Vũ Trung)
+email=lvt@example.com
+
+about=A powerful QGIS plugin that converts Shapefile (.shp) to KML/KMZ format with rich, customizable HTML popup descriptions. Features include dynamic field mapping, alias naming, conditional polygon coloring, row highlighting, and save/load configuration. Designed for viewing on Google Earth Mobile.
+
+tracker=https://github.com/USER/LVT-have-KML-view/issues
+repository=https://github.com/USER/LVT-have-KML-view
+
+tags=kml,kmz,shapefile,conversion,google earth,popup,html
+
+category=Vector
+icon=icon.png
+
+experimental=True
+deprecated=False
+
+changelog=
+    0.1.0 - Initial version (_001)
+    - SHP to KML/KMZ conversion
+    - Dynamic field reading
+    - Customizable HTML popup
+    - Conditional polygon coloring
+    - Row highlight
+    - Save/Load configuration
