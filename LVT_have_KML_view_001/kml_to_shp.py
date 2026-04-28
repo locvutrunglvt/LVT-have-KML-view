@@ -1,80 +1,96 @@
-"""KML/KMZ to Shapefile converter."""
-
 import os
-import zipfile
-import tempfile
+import re
 from qgis.core import (
-    QgsVectorLayer, QgsVectorFileWriter, QgsProject,
-    QgsCoordinateReferenceSystem, QgsCoordinateTransform
+    QgsVectorLayer, QgsVectorFileWriter, QgsCoordinateReferenceSystem,
+    QgsField, QgsFeature, QgsGeometry, QgsProject
 )
-
+from qgis.PyQt.QtCore import QVariant
 
 class KmlToShpConverter:
-    """Convert KML/KMZ files to Shapefile format."""
-
-    def convert(self, input_path, output_path, target_crs_str='EPSG:4326'):
-        """Convert KML/KMZ to SHP.
-
-        Args:
-            input_path: Path to KML or KMZ file
-            output_path: Path for output SHP file
-            target_crs_str: Target CRS string (e.g. 'EPSG:4326')
-
-        Returns:
-            (success, message, layer_or_none)
+    def convert(self, kml_path, output_shp, target_crs_str='EPSG:4326'):
         """
-        try:
-            kml_path = input_path
+        Converts KML/KMZ to SHP and attempts to parse attributes from HTML Description.
+        """
+        if not os.path.exists(kml_path):
+            return False, "KML file not found"
+            
+        # 1. Load KML layer
+        kml_layer = QgsVectorLayer(kml_path, "kml_temp", "ogr")
+        if not kml_layer.isValid():
+            return False, "Invalid KML file"
+            
+        # 2. Setup Target CRS
+        crs = QgsCoordinateReferenceSystem(target_crs_str)
+        if not crs.isValid():
+            crs = QgsCoordinateReferenceSystem('EPSG:4326')
+            
+        # 3. Create a temporary layer to hold parsed fields
+        # First, scan all features to find possible fields in Description
+        all_new_fields = set()
+        features = list(kml_layer.getFeatures())
+        
+        for feat in features:
+            desc = str(feat['description']) if 'description' in feat.fields().names() else ""
+            if desc:
+                # Find patterns like <td>Key:</td><td>Value</td> or <b>Key:</b> Value
+                matches = re.findall(r'<td>(.*?):?\s*</td>\s*<td>(.*?)</td>', desc, re.IGNORECASE)
+                if not matches:
+                    matches = re.findall(r'<b>(.*?):?\s*</b>\s*(.*?)<br>', desc, re.IGNORECASE)
+                
+                for key, val in matches:
+                    clean_key = self._clean_field_name(key)
+                    if clean_key:
+                        all_new_fields.add(clean_key)
 
-            # If KMZ, extract KML first
-            if input_path.lower().endswith('.kmz'):
-                kml_path = self._extract_kmz(input_path)
-                if not kml_path:
-                    return False, "Cannot extract KML from KMZ", None
+        # 4. Initialize Output SHP Writer
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "ESRI Shapefile"
+        options.fileEncoding = "UTF-8"
+        
+        # Build new fields list
+        fields = kml_layer.fields()
+        for new_f in all_new_fields:
+            if new_f.lower() not in [f.name().lower() for f in fields]:
+                fields.append(QgsField(new_f, QVariant.String))
+                
+        writer = QgsVectorFileWriter.create(
+            output_shp, fields, kml_layer.wkbType(), crs, 
+            QgsProject.instance().transformContext(), options
+        )
+        
+        if writer.hasError():
+            return False, f"Writer Error: {writer.errorMessage()}"
+            
+        # 5. Process and Write Features
+        for feat in features:
+            new_feat = QgsFeature(fields)
+            new_feat.setGeometry(feat.geometry())
+            
+            # Copy original attributes
+            for i in range(kml_layer.fields().count()):
+                new_feat.setAttribute(i, feat.attributes()[i])
+                
+            # Parse and add dynamic attributes
+            desc = str(feat['description']) if 'description' in feat.fields().names() else ""
+            if desc:
+                matches = re.findall(r'<td>(.*?):?\s*</td>\s*<td>(.*?)</td>', desc, re.IGNORECASE)
+                if not matches:
+                    matches = re.findall(r'<b>(.*?):?\s*</b>\s*(.*?)<br>', desc, re.IGNORECASE)
+                
+                for key, val in matches:
+                    clean_key = self._clean_field_name(key)
+                    # Find index of this field
+                    f_idx = fields.indexFromName(clean_key)
+                    if f_idx != -1:
+                        new_feat.setAttribute(f_idx, val.strip())
+            
+            writer.addFeature(new_feat)
+            
+        del writer
+        return True, "Success"
 
-            # Load KML as vector layer
-            layer = QgsVectorLayer(kml_path, 'kml_import', 'ogr')
-            if not layer.isValid():
-                return False, "Cannot read KML file", None
-
-            # Set up CRS transform
-            target_crs = QgsCoordinateReferenceSystem(target_crs_str)
-            transform = None
-            if layer.crs() != target_crs:
-                transform = QgsCoordinateTransform(
-                    layer.crs(), target_crs, QgsProject.instance()
-                )
-
-            # Write to SHP
-            options = QgsVectorFileWriter.SaveVectorOptions()
-            options.driverName = 'ESRI Shapefile'
-            options.fileEncoding = 'UTF-8'
-            if transform:
-                options.ct = transform
-
-            error = QgsVectorFileWriter.writeAsVectorFormatV3(
-                layer, output_path, QgsProject.instance().transformContext(), options
-            )
-
-            if error[0] == QgsVectorFileWriter.NoError:
-                result_layer = QgsVectorLayer(output_path, os.path.basename(output_path), 'ogr')
-                return True, f"Saved: {output_path}", result_layer
-            else:
-                return False, f"Write error: {error[1]}", None
-
-        except Exception as e:
-            return False, f"Error: {str(e)}", None
-
-    @staticmethod
-    def _extract_kmz(kmz_path):
-        """Extract KML from KMZ file."""
-        try:
-            tmp_dir = tempfile.mkdtemp()
-            with zipfile.ZipFile(kmz_path, 'r') as zf:
-                kml_files = [f for f in zf.namelist() if f.lower().endswith('.kml')]
-                if not kml_files:
-                    return None
-                zf.extract(kml_files[0], tmp_dir)
-                return os.path.join(tmp_dir, kml_files[0])
-        except Exception:
-            return None
+    def _clean_field_name(self, name):
+        # Remove HTML tags and special characters for SHP compatibility (max 10 chars usually)
+        clean = re.sub(r'<.*?>', '', name).strip()
+        clean = re.sub(r'[^a-zA-Z0-9_]', '_', clean)
+        return clean[:10]

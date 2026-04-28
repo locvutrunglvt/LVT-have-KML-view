@@ -1,129 +1,92 @@
-"""Internationalization: English / Vietnamese translations."""
-
-LANG_VI = 'vi'
-LANG_EN = 'en'
-
-T = {
-    'plugin_title': {'vi': 'LVT have KML view', 'en': 'LVT have KML view'},
-    'tab_shp2kml': {'vi': 'SHP → KML', 'en': 'SHP → KML'},
-    'tab_kml2shp': {'vi': 'KML → SHP', 'en': 'KML → SHP'},
-    'tab_help': {'vi': 'Trợ giúp', 'en': 'Help'},
-    # Section 1
-    'sec_io': {'vi': '1. Dữ liệu vào / ra', 'en': '1. Input / Output'},
-    'lbl_shp': {'vi': 'SHP:', 'en': 'SHP:'},
-    'lbl_layer': {'vi': 'Hoặc chọn Layer:', 'en': 'Or select Layer:'},
-    'btn_browse': {'vi': 'Duyệt...', 'en': 'Browse...'},
-    'lbl_output': {'vi': 'Xuất:', 'en': 'Output:'},
-    # Section 2
-    'sec_name': {'vi': '2. Name (Nhãn trên bản đồ)', 'en': '2. Name (Map Label)'},
-    'lbl_field1': {'vi': 'Trường 1:', 'en': 'Field 1:'},
-    'lbl_field2': {'vi': 'Trường 2:', 'en': 'Field 2:'},
-    'lbl_sep': {'vi': 'Phân cách:', 'en': 'Separator:'},
-    'lbl_name_size': {'vi': 'Cỡ chữ:', 'en': 'Font size:'},
-    # Section 3
-    'sec_desc': {'vi': '3. Mô tả (Popup)', 'en': '3. Description (Popup)'},
-    'col_check': {'vi': '☑', 'en': '☑'},
-    'col_field': {'vi': 'Trường gốc', 'en': 'Source Field'},
-    'col_alias': {'vi': 'Tên hiển thị', 'en': 'Display Name'},
-    'col_suffix': {'vi': 'Hậu tố', 'en': 'Suffix'},
-    'btn_up': {'vi': '▲ Lên', 'en': '▲ Up'},
-    'btn_down': {'vi': '▼ Xuống', 'en': '▼ Down'},
-    # Section 4
-    'sec_style': {'vi': '4. Kiểu Polygon', 'en': '4. Polygon Style'},
-    'lbl_border': {'vi': 'Viền:', 'en': 'Border:'},
-    'lbl_width': {'vi': 'Dày:', 'en': 'Width:'},
-    'lbl_fill': {'vi': 'Nền:', 'en': 'Fill:'},
-    'lbl_opacity': {'vi': 'Độ mờ:', 'en': 'Opacity:'},
-    'chk_cond': {'vi': 'Tô màu theo điều kiện', 'en': 'Conditional coloring'},
-    'lbl_cond_field': {'vi': 'Trường:', 'en': 'Field:'},
-    # Section 5
-    'sec_style_row': {'vi': '5. Tô màu hàng trong bảng Popup', 'en': '5. Popup Row Highlighting'},
-    'lbl_title': {'vi': 'Tiêu đề:', 'en': 'Title:'},
-    'lbl_title_size': {'vi': 'Cỡ:', 'en': 'Size:'},
-    'lbl_bg': {'vi': 'Nền:', 'en': 'BG:'},
-    'lbl_fg': {'vi': 'Chữ:', 'en': 'Text:'},
-    'chk_bold': {'vi': 'Đậm', 'en': 'Bold'},
-    'chk_row_hl': {'vi': 'Áp dụng cho dòng:', 'en': 'Apply to row:'},
-    'chk_row_hl_enable': {'vi': 'Kích hoạt tô màu dòng', 'en': 'Enable row highlight'},
-    'chk_hl_bold': {'vi': 'Đậm', 'en': 'Bold'},
-    'chk_hl_italic': {'vi': 'Nghiêng', 'en': 'Italic'},
-    'default_title': {'vi': 'Thông tin', 'en': 'Information'},
-    # Buttons
-    'btn_save_cfg': {'vi': '💾 Lưu cấu hình', 'en': '💾 Save Config'},
-    'btn_load_cfg': {'vi': '📂 Nạp cấu hình', 'en': '📂 Load Config'},
-    'btn_preview': {'vi': '👁 Xem trước', 'en': '👁 Preview'},
-    'btn_export': {'vi': '📤 Xuất', 'en': '📤 Export'},
-    'btn_cancel': {'vi': '❌ Hủy', 'en': '❌ Cancel'},
-    # KML to SHP tab
-    'lbl_kml_input': {'vi': 'File KML/KMZ:', 'en': 'KML/KMZ File:'},
-    'lbl_target_crs': {'vi': 'Hệ tọa độ đích:', 'en': 'Target CRS:'},
-    'lbl_default_crs': {'vi': '(Mặc định: EPSG:4326)', 'en': '(Default: EPSG:4326)'},
-    'btn_convert': {'vi': '🔄 Chuyển đổi', 'en': '🔄 Convert'},
-    'btn_add_to_map': {'vi': '🗺 Thêm vào bản đồ', 'en': '🗺 Add to Map'},
-    # Messages
-    'msg_no_shp': {'vi': 'Vui lòng chọn Shapefile hoặc Layer!', 'en': 'Please select a Shapefile or Layer!'},
-    'msg_success': {'vi': 'Thành công', 'en': 'Success'},
-    'msg_error': {'vi': 'Lỗi', 'en': 'Error'},
-    'msg_warning': {'vi': 'Cảnh báo', 'en': 'Warning'},
-    'msg_config_saved': {'vi': 'Đã lưu cấu hình!', 'en': 'Config saved!'},
-    'msg_config_loaded': {'vi': 'Đã nạp cấu hình!', 'en': 'Config loaded!'},
-    'msg_kml_no_file': {'vi': 'Vui lòng chọn file KML/KMZ!', 'en': 'Please select a KML/KMZ file!'},
-    'msg_convert_ok': {'vi': 'Đã chuyển đổi thành công!', 'en': 'Conversion successful!'},
-    # Language
-    'btn_lang': {'vi': '🌐 English', 'en': '🌐 Tiếng Việt'},
-    # Help
-    'help_title': {'vi': 'Hướng dẫn sử dụng', 'en': 'User Guide'},
-}
-
-HELP_TEXT = {
-    'vi': """<h2>LVT have KML view - Hướng dẫn</h2>
-<h3>Tab SHP → KML</h3>
-<ol>
-<li><b>Chọn dữ liệu:</b> Browse file SHP hoặc chọn layer đang mở trong QGIS</li>
-<li><b>Cấu hình Name:</b> Chọn 1-2 trường làm nhãn hiển thị trên bản đồ, điều chỉnh cỡ chữ</li>
-<li><b>Cấu hình Popup:</b> Tick chọn trường, đặt tên hiển thị (alias), thêm hậu tố (vd: ha, m²)</li>
-<li><b>Kiểu Polygon:</b> Chọn màu viền/nền, độ trong suốt. Bật tô màu điều kiện nếu cần</li>
-<li><b>Tiêu đề:</b> Đặt tên header popup, chọn màu nền/chữ, cỡ chữ</li>
-<li><b>Xem trước:</b> Nhấn Preview để xem popup trước khi xuất</li>
-<li><b>Xuất:</b> Chọn KML hoặc KMZ, nhấn Export</li>
-</ol>
-<h3>Tab KML → SHP</h3>
-<ol>
-<li>Chọn file KML hoặc KMZ</li>
-<li>Chọn hệ tọa độ đích (mặc định WGS84)</li>
-<li>Nhấn Chuyển đổi để tạo Shapefile</li>
-<li>Nhấn Thêm vào bản đồ để hiển thị trong QGIS</li>
-</ol>
-<p><i>Phiên bản: 0.2.0 (_002) | Tác giả: LVT (Lộc Vũ Trung)</i></p>""",
-
-    'en': """<h2>LVT have KML view - User Guide</h2>
-<h3>Tab SHP → KML</h3>
-<ol>
-<li><b>Select data:</b> Browse SHP file or select an open layer in QGIS</li>
-<li><b>Configure Name:</b> Choose 1-2 fields for map label, adjust font size</li>
-<li><b>Configure Popup:</b> Check fields, set display names (alias), add suffix (e.g. ha, m²)</li>
-<li><b>Polygon Style:</b> Choose border/fill colors, opacity. Enable conditional coloring if needed</li>
-<li><b>Header:</b> Set popup header title, background/text color, font size</li>
-<li><b>Preview:</b> Click Preview to see popup before exporting</li>
-<li><b>Export:</b> Choose KML or KMZ, click Export</li>
-</ol>
-<h3>Tab KML → SHP</h3>
-<ol>
-<li>Select KML or KMZ file</li>
-<li>Choose target CRS (default WGS84)</li>
-<li>Click Convert to create Shapefile</li>
-<li>Click Add to Map to display in QGIS</li>
-</ol>
-<p><i>Version: 0.2.0 (_002) | Author: LVT (Lộc Vũ Trung)</i></p>"""
-}
-
+# -*- coding: utf-8 -*-
 
 def tr(key, lang='vi'):
-    """Get translated string."""
-    entry = T.get(key, {})
-    return entry.get(lang, entry.get('vi', key))
-
+    data = {
+        'vi': {
+            'plugin_title': 'LVT have KML view - Công cụ KML chuyên nghiệp',
+            'tab_shp2kml': 'Chuyển SHP → KML',
+            'tab_kml2shp': 'Bung KML → SHP',
+            'tab_help': 'Hướng dẫn',
+            'tab_author': 'Tác giả',
+            'sec_io': '1. Dữ liệu Đầu vào / Đầu ra',
+            'sec_name': '2. Cấu hình Nhãn (Label trên bản đồ)',
+            'sec_desc': '3. Cấu hình Popup (Thông tin chi tiết)',
+            'sec_style': '4. Kiểu dáng vùng (Polygon Style)',
+            'sec_style_row': '5. Tiêu đề & Tô màu dòng điều kiện',
+            'lbl_layer': 'Chọn Layer từ QGIS:',
+            'btn_lang': '🌐 Tiếng Việt',
+            'btn_preview': '👁 Xem trước Popup',
+            'btn_export': '🚀 Xuất KML/KMZ',
+            'btn_save_cfg': '💾 Lưu Cấu hình',
+            'btn_load_cfg': '📂 Mở Cấu hình',
+            'btn_cancel': '❌ Đóng',
+            'msg_success': 'Xuất file thành công!',
+            'msg_config_saved': 'Đã lưu cấu hình thành công!',
+            'msg_config_loaded': 'Đã tải cấu hình thành công!',
+            'msg_convert_ok': 'Đã bung file sang Shapefile thành công!',
+            'help_title': 'HƯỚNG DẪN SỬ DỤNG CHI TIẾT',
+        },
+        'en': {
+            'plugin_title': 'LVT have KML view - Professional KML Tool',
+            'tab_shp2kml': 'Convert SHP → KML',
+            'tab_kml2shp': 'Extract KML → SHP',
+            'tab_help': 'Guide',
+            'tab_author': 'Author',
+            'sec_io': '1. Input / Output Data',
+            'sec_name': '2. Label Configuration (On-map)',
+            'sec_desc': '3. Popup Configuration (Details)',
+            'sec_style': '4. Polygon Styling',
+            'sec_style_row': '5. Header & Conditional Row Highlight',
+            'lbl_layer': 'Select QGIS Layer:',
+            'btn_lang': '🌐 English',
+            'btn_preview': '👁 Preview Popup',
+            'btn_export': '🚀 Export KML/KMZ',
+            'btn_save_cfg': '💾 Save Config',
+            'btn_load_cfg': '📂 Load Config',
+            'btn_cancel': '❌ Close',
+            'msg_success': 'Exported successfully!',
+            'msg_config_saved': 'Configuration saved!',
+            'msg_config_loaded': 'Configuration loaded!',
+            'msg_convert_ok': 'Extracted to Shapefile successfully!',
+            'help_title': 'DETAILED USER GUIDE',
+        }
+    }
+    return data.get(lang, data['vi']).get(key, key)
 
 def get_help(lang='vi'):
-    """Get help text in specified language."""
-    return HELP_TEXT.get(lang, HELP_TEXT['vi'])
+    if lang == 'vi':
+        return """
+        <h2 style='color:#1B5E20'>HƯỚNG DẪN SỬ DỤNG CHI TIẾT</h2>
+        <p><b>1. Dữ liệu Đầu vào (SHP → KML):</b> Chọn Layer đang mở trong QGIS hoặc bấm Browse để chọn file SHP từ máy tính. Chọn định dạng KMZ để nén file gọn hơn.</p>
+        <p><b>2. Cấu hình Nhãn:</b> Chọn 2 trường dữ liệu để kết hợp thành tên hiển thị trên bản đồ Google Earth. Bạn có thể xem trước kết quả ngay tại dòng chữ màu xanh.</p>
+        <p><b>3. Cấu hình Popup:</b> 
+            - Tick chọn các trường muốn hiển thị trong bảng thông tin.<br>
+            - <b>Alias:</b> Đổi tên hiển thị cho trường (vd: 'dien_tich' thành 'Diện tích').<br>
+            - <b>Hậu tố:</b> Thêm đơn vị (vd: 'ha', 'm2') sau giá trị số.
+        </p>
+        <p><b>4. Kiểu dáng Polygon:</b> Tùy chỉnh màu viền, độ dày và màu nền. Sử dụng thanh trượt Opacity để chỉnh độ trong suốt của vùng.</p>
+        <p><b>5. Tô màu Điều kiện:</b> 
+            - Nhấn <b>[+ Thêm]</b> để tạo quy tắc.<br>
+            - Hệ thống hỗ trợ so sánh <b>>, <, =</b> cho các trường số và chữ.<br>
+            - Dòng thỏa mãn điều kiện sẽ được đổi màu nền và màu chữ trong Popup.
+        </p>
+        <p><b>6. Bung KML → SHP:</b> Chọn file KML/KMZ, công cụ sẽ tự động bóc tách các trường dữ liệu từ cột Description để tạo lại file SHP có đầy đủ các cột thuộc tính riêng biệt.</p>
+        """
+    else:
+        return """
+        <h2 style='color:#1B5E20'>DETAILED USER GUIDE</h2>
+        <p><b>1. Input Data (SHP → KML):</b> Select an active QGIS layer or Browse for a SHP file. Use KMZ for a more compressed output.</p>
+        <p><b>2. Label Configuration:</b> Pick 2 fields to combine into the map label. See the live preview in blue text.</p>
+        <p><b>3. Popup Configuration:</b> 
+            - Check fields you want to show in the info table.<br>
+            - <b>Alias:</b> Rename fields for display (e.g., 'area' to 'Land Area').<br>
+            - <b>Suffix:</b> Add units (e.g., 'ha', 'sqm') after values.
+        </p>
+        <p><b>4. Polygon Styling:</b> Customize border color, width, and fill color. Use the Opacity slider to adjust transparency.</p>
+        <p><b>5. Conditional Formatting:</b> 
+            - Click <b>[+ Add]</b> to create a new rule.<br>
+            - Supports <b>>, <, =</b> operators for numeric and text fields.<br>
+            - Highlighted rows will change text and background colors in the Popup.
+        </p>
+        <p><b>6. Extract KML → SHP:</b> Select a KML/KMZ file. The tool will parse the Description column and reconstruct a SHP with separate attribute columns.</p>
+        """
