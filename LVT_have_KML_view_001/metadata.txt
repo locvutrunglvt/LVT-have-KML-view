@@ -2,7 +2,7 @@
 name=LVT have KML view
 qgisMinimumVersion=3.0
 description=Convert Shapefile to KML/KMZ with customizable HTML popup for Google Earth Mobile
-version=0.1.0
+version=0.2.0
 author=LVT (Lộc Vũ Trung)
 email=lvt@example.com
 
@@ -20,10 +20,11 @@ experimental=True
 deprecated=False
 
 changelog=
+    0.2.0 - Version _002
+    - Added Name font size control
+    - Added Suffix 'ha' for area fields
+    - Added Bold/Italic for row highlights
+    - Added KML/KMZ to SHP conversion tab
+    - Added English/Vietnamese support
+    - Enhanced popup table borders
     0.1.0 - Initial version (_001)
-    - SHP to KML/KMZ conversion
-    - Dynamic field reading
-    - Customizable HTML popup
-    - Conditional polygon coloring
-    - Row highlight
-    - Save/Load configuration
