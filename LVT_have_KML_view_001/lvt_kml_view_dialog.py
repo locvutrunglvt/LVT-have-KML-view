@@ -246,7 +246,9 @@ class LvtKmlViewDialog(QDialog):
             feat = next(layers[0].getFeatures(), None)
             if feat:
                 cfg = self._get_current_config()
-                if cfg: html = HtmlTemplateBuilder(cfg).build({f.name(): feat[f.name()] for f in feat.fields()}); self.html_preview.setHtml(html)
+                if cfg: 
+                    html = HtmlTemplateBuilder(cfg).build({f.name(): feat[f.name()] for f in feat.fields()})
+                    self.html_preview.setHtml(f"<div align='center'>{html}</div>")
 
     def _get_current_config(self):
         rules = []
